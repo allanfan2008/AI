@@ -51,4 +51,486 @@
         <button id="btn-single-step" class="px-3 py-1.5 text-xs font-medium rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-200 transition flex items-center gap-1">
           <i class="fa-solid fa-forward-step"></i> 單步觸發
         </button>
-        <button id="btn-clear" class="px-3 py-1.5 text-xs font-medium rounded-lg bg-slate-700/80 hover:bg-red-900/40 hover:text-red-300 text-slate-300 transition flex items
+        <button id="btn-clear" class="px-3 py-1.5 text-xs font-medium rounded-lg bg-slate-700/80 hover:bg-red-900/40 hover:text-red-300 text-slate-300 transition flex items-center gap-1">
+          <i class="fa-solid fa-trash-can"></i> 清除
+        </button>
+        <button id="btn-settings" class="px-3 py-1.5 text-xs font-medium rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-200 transition flex items-center gap-1">
+          <i class="fa-solid fa-gear"></i> 設定
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Grid -->
+  <main class="flex-1 max-w-6xl w-full mx-auto p-4 grid grid-cols-1 md:grid-cols-4 gap-4 overflow-hidden">
+
+    <!-- Left Controls / Status Panel -->
+    <aside class="md:col-span-1 flex flex-col gap-4">
+      
+      <!-- Worker Status Card -->
+      <div class="bg-slate-800/60 border border-slate-700/80 rounded-2xl p-4 shadow-sm">
+        <div class="flex justify-between items-center mb-2">
+          <h2 class="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+            <i class="fa-solid fa-server text-indigo-400"></i> Worker 狀態
+          </h2>
+          <span id="status-badge" class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-700 text-slate-300">
+            未連接
+          </span>
+        </div>
+        <div class="text-xs text-slate-400 truncate font-mono bg-slate-900/60 p-2 rounded border border-slate-800" id="current-worker-display">
+          尚未設定 Worker 網址
+        </div>
+      </div>
+
+      <!-- Turn & Settings Quick Summary -->
+      <div class="bg-slate-800/60 border border-slate-700/80 rounded-2xl p-4 shadow-sm flex-1 flex flex-col gap-3">
+        <h2 class="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+          <i class="fa-solid fa-sliders text-indigo-400"></i> 運行狀態
+        </h2>
+
+        <div class="grid grid-cols-2 gap-2 text-xs">
+          <div class="bg-slate-900/40 p-2.5 rounded-xl border border-slate-800">
+            <div class="text-slate-400 text-[10px]">當前回合 (Turn)</div>
+            <div id="display-current-turn" class="text-base font-bold text-indigo-400 mt-0.5">AI A (藍)</div>
+          </div>
+          <div class="bg-slate-900/40 p-2.5 rounded-xl border border-slate-800">
+            <div class="text-slate-400 text-[10px]">總對話數</div>
+            <div id="display-msg-count" class="text-base font-bold text-slate-200 mt-0.5">0</div>
+          </div>
+        </div>
+
+        <div class="text-xs space-y-2 mt-1">
+          <div>
+            <label class="text-slate-400 text-[11px] block mb-1">自動發言間隔 (秒): <span id="delay-val" class="text-slate-200 font-semibold">3</span>s</label>
+            <input type="range" id="input-delay" min="1" max="10" value="3" class="w-full accent-indigo-500 bg-slate-700 h-1.5 rounded-lg appearance-none cursor-pointer">
+          </div>
+
+          <div class="pt-2 border-t border-slate-700/60">
+            <label class="text-slate-400 text-[11px] block mb-1">初次對話主題 / 開場白</label>
+            <textarea id="input-seed" rows="3" class="w-full text-xs p-2.5 bg-slate-900/80 border border-slate-700 rounded-xl focus:outline-none focus:border-indigo-500 text-slate-200 resize-none" placeholder="輸入主題，例如：我們來討論哲學問題...">你好！我們今天來聊聊 AI 發展對人類社會的未來影響吧。</textarea>
+          </div>
+        </div>
+      </div>
+
+    </aside>
+
+    <!-- Right Chat Area -->
+    <section class="md:col-span-3 bg-slate-800/60 border border-slate-700/80 rounded-2xl flex flex-col overflow-hidden shadow-sm">
+      
+      <!-- Chat Header -->
+      <div class="px-4 py-2.5 bg-slate-800/90 border-b border-slate-700/80 flex items-center justify-between text-xs text-slate-400">
+        <div class="flex items-center space-x-3">
+          <span class="flex items-center gap-1.5 text-indigo-400 font-medium">
+            <span class="w-2.5 h-2.5 rounded-full bg-indigo-500 inline-block"></span> AI A (專家)
+          </span>
+          <span>⇄</span>
+          <span class="flex items-center gap-1.5 text-emerald-400 font-medium">
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block"></span> AI B (質疑者)
+          </span>
+        </div>
+        <div id="typing-indicator" class="hidden items-center gap-2 text-indigo-300 animate-pulse-slow">
+          <i class="fa-solid fa-circle-notch fa-spin"></i>
+          <span id="typing-text" class="text-[11px]">AI 正在思考中...</span>
+        </div>
+      </div>
+
+      <!-- Messages Container -->
+      <div id="chat-box" class="flex-1 p-4 overflow-y-auto space-y-4 chat-scroll">
+        <!-- Messages will be injected here -->
+      </div>
+
+      <!-- Human Input / Intervention Box -->
+      <div class="p-3 bg-slate-900/80 border-t border-slate-700/80 flex gap-2 items-center">
+        <input type="text" id="human-input" class="flex-1 text-xs sm:text-sm bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2.5 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition" placeholder="人類參與對話... 輸入訊息插話，下一回合由對手 AI 回覆">
+        <button id="btn-send-human" class="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-semibold transition flex items-center gap-1.5">
+          <i class="fa-solid fa-paper-plane"></i> 發送
+        </button>
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- Settings Modal -->
+  <div id="modal-settings" class="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-slate-800 border border-slate-700 rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl">
+      <div class="px-5 py-4 border-b border-slate-700 flex justify-between items-center">
+        <h3 class="font-bold text-base text-slate-100 flex items-center gap-2">
+          <i class="fa-solid fa-sliders text-indigo-400"></i> 對話設定與 API 設定
+        </h3>
+        <button id="btn-close-modal" class="text-slate-400 hover:text-slate-200">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <div class="p-5 space-y-4 text-xs">
+        
+        <div>
+          <label class="block font-semibold text-slate-300 mb-1">Cloudflare Worker Proxy URL</label>
+          <input type="url" id="setting-worker-url" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-slate-200 font-mono focus:outline-none focus:border-indigo-500" placeholder="https://orange-water-91fc.allanfan2008.workers.dev/">
+          <p class="text-[11px] text-slate-400 mt-1">請填入部署好的 Cloudflare Worker 網址。網頁會透過 `X-Agent-Type: A/B` 發送標頭給 Worker。</p>
+        </div>
+
+        <div>
+          <label class="block font-semibold text-indigo-300 mb-1">AI A 角色提示字 (System Instruction / Persona)</label>
+          <textarea id="setting-persona-a" rows="2" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2 text-slate-200 focus:outline-none focus:border-indigo-500 resize-none">你是一位樂觀、有創見且條理分明的專家。你傾向提供豐富的理論說明與正面解方。</textarea>
+        </div>
+
+        <div>
+          <label class="block font-semibold text-emerald-300 mb-1">AI B 角色提示字 (System Instruction / Persona)</label>
+          <textarea id="setting-persona-b" rows="2" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2 text-slate-200 focus:outline-none focus:border-emerald-500 resize-none">你是一位嚴謹、抱持批判思維且喜歡追問細節的質疑者。請仔細審視對方的觀點並給出深入的反思或提問。</textarea>
+        </div>
+
+      </div>
+
+      <div class="px-5 py-3 bg-slate-900/60 border-t border-slate-700 flex justify-end gap-2">
+        <button id="btn-save-settings" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-semibold text-xs transition">
+          儲存並更新設定
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Default Worker URL
+    const DEFAULT_WORKER_URL = "https://orange-water-91fc.allanfan2008.workers.dev/";
+
+    // App State
+    const state = {
+      workerUrl: localStorage.getItem("workerUrl") || DEFAULT_WORKER_URL,
+      personaA: localStorage.getItem("personaA") || "你是一位樂觀、有創見且條理分明的專家。你傾向提供豐富的理論說明與正面解方。",
+      personaB: localStorage.getItem("personaB") || "你是一位嚴謹、抱持批判思維且喜歡追問細節的質疑者。請仔細審視對方的觀點並給出深入的反思或提問。",
+      isLooping: false,
+      isThinking: false,
+      currentTurn: "A", // "A" or "B"
+      messages: [], // { id, role: 'A'|'B'|'Human', text, time }
+      delaySec: 3,
+      loopTimer: null
+    };
+
+    // DOM Elements
+    const elChatBox = document.getElementById("chat-box");
+    const elBtnToggleLoop = document.getElementById("btn-toggle-loop");
+    const elLblToggleLoop = document.getElementById("lbl-toggle-loop");
+    const elBtnSingleStep = document.getElementById("btn-single-step");
+    const elBtnClear = document.getElementById("btn-clear");
+    const elBtnSettings = document.getElementById("btn-settings");
+    const elModalSettings = document.getElementById("modal-settings");
+    const elBtnCloseModal = document.getElementById("btn-close-modal");
+    const elBtnSaveSettings = document.getElementById("btn-save-settings");
+    const elSettingWorkerUrl = document.getElementById("setting-worker-url");
+    const elSettingPersonaA = document.getElementById("setting-persona-a");
+    const elSettingPersonaB = document.getElementById("setting-persona-b");
+    const elCurrentWorkerDisplay = document.getElementById("current-worker-display");
+    const elStatusBadge = document.getElementById("status-badge");
+    const elDisplayCurrentTurn = document.getElementById("display-current-turn");
+    const elDisplayMsgCount = document.getElementById("display-msg-count");
+    const elInputDelay = document.getElementById("input-delay");
+    const elDelayVal = document.getElementById("delay-val");
+    const elInputSeed = document.getElementById("input-seed");
+    const elTypingIndicator = document.getElementById("typing-indicator");
+    const elTypingText = document.getElementById("typing-text");
+    const elHumanInput = document.getElementById("human-input");
+    const elBtnSendHuman = document.getElementById("btn-send-human");
+
+    // Initialize Modal Values
+    function initSettings() {
+      elSettingWorkerUrl.value = state.workerUrl;
+      elSettingPersonaA.value = state.personaA;
+      elSettingPersonaB.value = state.personaB;
+      updateWorkerDisplay();
+    }
+
+    function updateWorkerDisplay() {
+      if (state.workerUrl) {
+        elCurrentWorkerDisplay.textContent = state.workerUrl;
+        elStatusBadge.textContent = "已連線 Worker";
+        elStatusBadge.className = "inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-emerald-500/20 text-emerald-300 border border-emerald-500/30";
+      } else {
+        elCurrentWorkerDisplay.textContent = "未設定 Worker 網址";
+        elStatusBadge.textContent = "未設定";
+        elStatusBadge.className = "inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-500/20 text-red-300 border border-red-500/30";
+      }
+    }
+
+    // Render Messages
+    function renderMessages() {
+      elChatBox.innerHTML = "";
+
+      if (state.messages.length === 0) {
+        elChatBox.innerHTML = `
+          <div class="h-full flex flex-col items-center justify-center text-slate-500 text-xs py-12">
+            <i class="fa-solid fa-comments text-4xl mb-3 opacity-30"></i>
+            <p>對話紀錄為空，請點擊「開始自動對話」或「單步觸發」啟動雙 AI 交流。</p>
+          </div>
+        `;
+        elDisplayMsgCount.textContent = "0";
+        return;
+      }
+
+      state.messages.forEach(msg => {
+        const isA = msg.role === "A";
+        const isB = msg.role === "B";
+        const isHuman = msg.role === "Human";
+
+        let bubbleBg = "bg-slate-800 text-slate-200 border-slate-700";
+        let roleBadge = "人類 (Human)";
+        let badgeStyle = "bg-purple-500/20 text-purple-300 border-purple-500/30";
+        let alignClass = "justify-center";
+
+        if (isA) {
+          bubbleBg = "bg-indigo-950/40 text-indigo-100 border-indigo-700/50";
+          roleBadge = "AI A";
+          badgeStyle = "bg-indigo-500/20 text-indigo-300 border-indigo-500/30";
+          alignClass = "justify-start";
+        } else if (isB) {
+          bubbleBg = "bg-emerald-950/40 text-emerald-100 border-emerald-700/50";
+          roleBadge = "AI B";
+          badgeStyle = "bg-emerald-500/20 text-emerald-300 border-emerald-500/30";
+          alignClass = "justify-end";
+        }
+
+        const msgEl = document.createElement("div");
+        msgEl.className = `flex ${alignClass} mb-3`;
+        msgEl.innerHTML = `
+          <div class="max-w-[85%] border ${bubbleBg} rounded-2xl p-3.5 shadow-sm space-y-1.5">
+            <div class="flex items-center justify-between gap-3 text-[11px]">
+              <span class="px-2 py-0.5 rounded-full border text-[10px] font-semibold ${badgeStyle}">${roleBadge}</span>
+              <span class="text-slate-500">${msg.time}</span>
+            </div>
+            <div class="text-xs sm:text-sm whitespace-pre-wrap leading-relaxed">${escapeHtml(msg.text)}</div>
+          </div>
+        `;
+        elChatBox.appendChild(msgEl);
+      });
+
+      elDisplayMsgCount.textContent = state.messages.length;
+      elChatBox.scrollTop = elChatBox.scrollHeight;
+    }
+
+    function escapeHtml(str) {
+      return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+
+    // Call Cloudflare Worker Proxy
+    async function fetchGeminiResponse(agentType) {
+      if (!state.workerUrl) {
+        throw new Error("請先點擊「設定」填入 Cloudflare Worker Proxy 網址！");
+      }
+
+      const persona = agentType === "A" ? state.personaA : state.personaB;
+      
+      // Build Conversation Context
+      const formattedContents = [];
+
+      // Add System Persona as initial prompt context
+      formattedContents.push({
+        role: "user",
+        parts: [{ text: `[System Instruction / Role Definition]: ${persona}` }]
+      });
+      formattedContents.push({
+        role: "model",
+        parts: [{ text: "了解，我已經清楚我的角色設定，隨時可以進行討論。" }]
+      });
+
+      // Construct dialogue history
+      if (state.messages.length === 0) {
+        // Initial Seed
+        const seedText = elInputSeed.value.trim() || "你好，讓我們開始對話。";
+        formattedContents.push({
+          role: "user",
+          parts: [{ text: seedText }]
+        });
+      } else {
+        // Map prior messages
+        state.messages.forEach(msg => {
+          if (msg.role === agentType) {
+            formattedContents.push({
+              role: "model",
+              parts: [{ text: msg.text }]
+            });
+          } else {
+            formattedContents.push({
+              role: "user",
+              parts: [{ text: `${msg.role === 'Human' ? '[人類成員]' : '[對手AI]'}: ${msg.text}` }]
+            });
+          }
+        });
+      }
+
+      // Send request to Worker proxy
+      const res = await fetch(state.workerUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Agent-Type": agentType
+        },
+        body: JSON.stringify({ contents: formattedContents })
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || `HTTP 錯誤碼: ${res.status}`);
+      }
+
+      const data = await res.json();
+      
+      if (data.error) {
+        throw new Error(typeof data.error === "string" ? data.error : JSON.stringify(data.error));
+      }
+
+      const textResult = data.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (!textResult) {
+        throw new Error("無效的 API 回應格式。");
+      }
+
+      return textResult;
+    }
+
+    // Step Logic
+    async function triggerNextTurn() {
+      if (state.isThinking) return;
+
+      state.isThinking = true;
+      const targetAgent = state.currentTurn;
+
+      // Update UI
+      elTypingText.textContent = `AI ${targetAgent} 正在思考並回應中...`;
+      elTypingIndicator.classList.remove("hidden");
+      elTypingIndicator.classList.add("flex");
+
+      try {
+        const replyText = await fetchGeminiResponse(targetAgent);
+        
+        // Push message
+        state.messages.push({
+          id: Date.now(),
+          role: targetAgent,
+          text: replyText,
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+        });
+
+        // Switch Turn
+        state.currentTurn = targetAgent === "A" ? "B" : "A";
+        elDisplayCurrentTurn.textContent = state.currentTurn === "A" ? "AI A (藍)" : "AI B (綠)";
+
+        renderMessages();
+
+      } catch (err) {
+        console.error("Dialogue Turn Error:", err);
+        alert(`呼叫失敗: ${err.message}`);
+        stopLoop();
+      } finally {
+        state.isThinking = false;
+        elTypingIndicator.classList.add("hidden");
+        elTypingIndicator.classList.remove("flex");
+      }
+    }
+
+    // Loop Management
+    function startLoop() {
+      if (!state.workerUrl) {
+        alert("請先點擊右上角「設定」按鈕填寫 Cloudflare Worker 網址！");
+        elModalSettings.classList.remove("hidden");
+        return;
+      }
+
+      state.isLooping = true;
+      elLblToggleLoop.textContent = "暫停自動對話";
+      elBtnToggleLoop.className = "px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-amber-600 hover:bg-amber-500 text-white shadow-sm transition flex items-center gap-1.5";
+      elBtnToggleLoop.querySelector("i").className = "fa-solid fa-pause";
+
+      runLoopCycle();
+    }
+
+    function stopLoop() {
+      state.isLooping = false;
+      if (state.loopTimer) clearTimeout(state.loopTimer);
+      
+      elLblToggleLoop.textContent = "開始自動對話";
+      elBtnToggleLoop.className = "px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm transition flex items-center gap-1.5";
+      elBtnToggleLoop.querySelector("i").className = "fa-solid fa-play";
+    }
+
+    async function runLoopCycle() {
+      if (!state.isLooping) return;
+
+      await triggerNextTurn();
+
+      if (state.isLooping) {
+        state.loopTimer = setTimeout(runLoopCycle, state.delaySec * 1000);
+      }
+    }
+
+    // Human Intervention
+    function sendHumanMessage() {
+      const text = elHumanInput.value.trim();
+      if (!text) return;
+
+      state.messages.push({
+        id: Date.now(),
+        role: "Human",
+        text: text,
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+      });
+
+      elHumanInput.value = "";
+      renderMessages();
+
+      // Automatically trigger next AI turn
+      if (!state.isThinking) {
+        triggerNextTurn();
+      }
+    }
+
+    // Event Listeners
+    elBtnToggleLoop.addEventListener("click", () => {
+      if (state.isLooping) stopLoop();
+      else startLoop();
+    });
+
+    elBtnSingleStep.addEventListener("click", () => {
+      if (state.isLooping) stopLoop();
+      triggerNextTurn();
+    });
+
+    elBtnClear.addEventListener("click", () => {
+      stopLoop();
+      state.messages = [];
+      state.currentTurn = "A";
+      elDisplayCurrentTurn.textContent = "AI A (藍)";
+      renderMessages();
+    });
+
+    elBtnSettings.addEventListener("click", () => elModalSettings.classList.remove("hidden"));
+    elBtnCloseModal.addEventListener("click", () => elModalSettings.classList.add("hidden"));
+
+    elBtnSaveSettings.addEventListener("click", () => {
+      state.workerUrl = elSettingWorkerUrl.value.trim();
+      state.personaA = elSettingPersonaA.value.trim();
+      state.personaB = elSettingPersonaB.value.trim();
+
+      localStorage.setItem("workerUrl", state.workerUrl);
+      localStorage.setItem("personaA", state.personaA);
+      localStorage.setItem("personaB", state.personaB);
+
+      updateWorkerDisplay();
+      elModalSettings.classList.add("hidden");
+    });
+
+    elInputDelay.addEventListener("input", (e) => {
+      state.delaySec = parseInt(e.target.value, 10);
+      elDelayVal.textContent = state.delaySec;
+    });
+
+    elBtnSendHuman.addEventListener("click", sendHumanMessage);
+    elHumanInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") sendHumanMessage();
+    });
+
+    // Initial Startup
+    initSettings();
+    renderMessages();
+  </script>
+</body>
+</html>
