@@ -234,7 +234,7 @@
         return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
       }
 
-      async function fetchGeminiResponse(agentType) {
+      async function fetchGeminiResponse(agentType, retryCount = 3) {
         if (!state.workerUrl) throw new Error("請先設定 Worker 網址");
         const persona = agentType === "A" ? state.personaA : state.personaB;
         const contents = [
@@ -242,7 +242,8 @@
           { role: "model", parts: [{ text: "了解。" }] }
         ];
 
-        state.messages.slice(-10).forEach(msg => {
+        // 限制最近 4 則對話，減輕伺服器負擔並加速回應
+        state.messages.slice(-4).forEach(msg => {
           contents.push({
             role: msg.role === agentType ? "model" : "user",
             parts: [{ text: `${msg.role === 'Human' ? '[人類]' : ''}${msg.text}` }]
@@ -253,20 +254,39 @@
           contents.push({ role: "user", parts: [{ text: el.inputSeed.value.trim() || "開始對話" }] });
         }
 
-        const res = await fetch(state.workerUrl, {
-          method: "POST",
-          headers: { "Content-Type": "application/json", "X-Agent-Type": agentType },
-          body: JSON.stringify({ contents })
-        });
+        try {
+          const res = await fetch(state.workerUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "X-Agent-Type": agentType },
+            body: JSON.stringify({ contents })
+          });
 
-        const text = await res.text();
-        let data;
-        try { data = JSON.parse(text); } catch (e) { throw new Error(`回傳非 JSON: ${text}`); }
-        if (!res.ok || data.error) throw new Error(data.error?.message || data.error || `HTTP ${res.status}`);
+          const text = await res.text();
+          let data;
+          try { data = JSON.parse(text); } catch (e) { throw new Error(`回傳非 JSON: ${text}`); }
 
-        const resultText = data.candidates?.[0]?.content?.parts?.[0]?.text;
-        if (!resultText) throw new Error("API 回應內容空值");
-        return resultText;
+          // 如果遇到高流量壅塞且還有重試次數，自動等待 3 秒後重試
+          if (!res.ok || data.error) {
+            const errorMsg = data.error?.message || data.error || `HTTP ${res.status}`;
+            if (errorMsg.includes("high demand") && retryCount > 0) {
+              el.typingText.textContent = `伺服器忙碌中，3秒後自動重試 (剩餘次數: ${retryCount})...`;
+              await new Promise(resolve => setTimeout(resolve, 3000));
+              return fetchGeminiResponse(agentType, retryCount - 1);
+            }
+            throw new Error(errorMsg);
+          }
+
+          const resultText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+          if (!resultText) throw new Error("API 回應內容空值");
+          return resultText;
+
+        } catch (err) {
+          if (retryCount > 0 && err.message.includes("high demand")) {
+            await new Promise(resolve => setTimeout(resolve, 3000));
+            return fetchGeminiResponse(agentType, retryCount - 1);
+          }
+          throw err;
+        }
       }
 
       async function triggerNextTurn() {
