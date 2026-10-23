@@ -242,7 +242,7 @@ async function fetchGeminiResponse(agentType, retryCount = 3) {
           { role: "model", parts: [{ text: "了解。" }] }
         ];
 
-        state.messages.slice(-4).forEach(msg => {
+        state.messages.slice(-2).forEach(msg => {
           contents.push({
             role: msg.role === agentType ? "model" : "user",
             parts: [{ text: `${msg.role === 'Human' ? '[人類]' : ''}${msg.text}` }]
