@@ -234,7 +234,7 @@
         return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
       }
 
-      async function fetchGeminiResponse(agentType, retryCount = 3) {
+async function fetchGeminiResponse(agentType, retryCount = 3) {
         if (!state.workerUrl) throw new Error("請先設定 Worker 網址");
         const persona = agentType === "A" ? state.personaA : state.personaB;
         const contents = [
@@ -242,7 +242,6 @@
           { role: "model", parts: [{ text: "了解。" }] }
         ];
 
-        // 限制最近 4 則對話，減輕伺服器負擔並加速回應
         state.messages.slice(-4).forEach(msg => {
           contents.push({
             role: msg.role === agentType ? "model" : "user",
@@ -261,34 +260,69 @@
             body: JSON.stringify({ contents })
           });
 
-          const text = await res.text();
-          let data;
-          try { data = JSON.parse(text); } catch (e) { throw new Error(`回傳非 JSON: ${text}`); }
-
-          // 如果遇到高流量壅塞且還有重試次數，自動等待 3 秒後重試
-          if (!res.ok || data.error) {
-            const errorMsg = data.error?.message || data.error || `HTTP ${res.status}`;
-            if (errorMsg.includes("high demand") && retryCount > 0) {
-              el.typingText.textContent = `伺服器忙碌中，3秒後自動重試 (剩餘次數: ${retryCount})...`;
-              await new Promise(resolve => setTimeout(resolve, 3000));
-              return fetchGeminiResponse(agentType, retryCount - 1);
-            }
-            throw new Error(errorMsg);
+          if (!res.ok) {
+            const errText = await res.text();
+            throw new Error(`HTTP 錯誤 ${res.status}: ${errText}`);
           }
 
-          const resultText = data.candidates?.[0]?.content?.parts?.[0]?.text;
-          if (!resultText) throw new Error("API 回應內容空值");
-          return resultText;
+          // 準備一個空的訊息物件用來即時塞入串流文字
+          const newMessage = {
+            id: Date.now(),
+            role: agentType,
+            text: "",
+            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+          };
+          state.messages.push(newMessage);
+          renderMessages();
+
+          // 讀取 SSE 串流資料
+          const reader = res.body.getReader();
+          const decoder = new TextDecoder();
+          let buffer = "";
+
+          while (true) {
+            const { value, done } = await reader.read();
+            if (done) break;
+
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split("\n");
+            buffer = lines.pop(); // 保留未完成的行
+
+            for (const line of lines) {
+              const trimmed = line.trim();
+              if (trimmed.startsWith("data:")) {
+                const jsonStr = trimmed.substring(5).trim();
+                if (jsonStr) {
+                  try {
+                    const chunk = JSON.parse(jsonStr);
+                    const chunkText = chunk.candidates?.[0]?.content?.parts?.[0]?.text;
+                    if (chunkText) {
+                      newMessage.text += chunkText;
+                      renderMessages(); // 即時更新畫面文字
+                    }
+                  } catch (e) {
+                    console.warn("解析串流 JSON 失敗", e);
+                  }
+                }
+              }
+            }
+          }
+
+          if (!newMessage.text) {
+            throw new Error("串流回應內容空值");
+          }
+
+          return newMessage.text;
 
         } catch (err) {
-          if (retryCount > 0 && err.message.includes("high demand")) {
+          if (retryCount > 0 && (err.message.includes("high demand") || err.message.includes("network"))) {
+            state.messages.pop(); // 移除失敗的空訊息
             await new Promise(resolve => setTimeout(resolve, 3000));
             return fetchGeminiResponse(agentType, retryCount - 1);
           }
           throw err;
         }
       }
-
       async function triggerNextTurn() {
         if (state.isThinking) return;
         state.isThinking = true;
