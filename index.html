@@ -319,11 +319,9 @@
       }
 
       const persona = agentType === "A" ? state.personaA : state.personaB;
-      
-      // Build Conversation Context
       const formattedContents = [];
 
-      // Add System Persona as initial prompt context
+      // 1. 設定角色提示字
       formattedContents.push({
         role: "user",
         parts: [{ text: `[System Instruction / Role Definition]: ${persona}` }]
@@ -333,17 +331,17 @@
         parts: [{ text: "了解，我已經清楚我的角色設定，隨時可以進行討論。" }]
       });
 
-      // Construct dialogue history
-      if (state.messages.length === 0) {
-        // Initial Seed
+      // 2. 歷史紀錄截取最新的 10 則訊息 (避免過長導致 524 Timeout)
+      const recentMessages = state.messages.slice(-10);
+
+      if (recentMessages.length === 0) {
         const seedText = elInputSeed.value.trim() || "你好，讓我們開始對話。";
         formattedContents.push({
           role: "user",
           parts: [{ text: seedText }]
         });
       } else {
-        // Map prior messages
-        state.messages.forEach(msg => {
+        recentMessages.forEach(msg => {
           if (msg.role === agentType) {
             formattedContents.push({
               role: "model",
@@ -358,7 +356,7 @@
         });
       }
 
-      // Send request to Worker proxy
+      // 3. 發送請求
       const res = await fetch(state.workerUrl, {
         method: "POST",
         headers: {
@@ -368,63 +366,26 @@
         body: JSON.stringify({ contents: formattedContents })
       });
 
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => ({}));
-        throw new Error(errorData.error || `HTTP 錯誤碼: ${res.status}`);
+      // 安全解析 Response
+      const responseText = await res.text();
+      let data;
+      try {
+        data = JSON.parse(responseText);
+      } catch (e) {
+        throw new Error(`伺服器回傳非 JSON 格式 (HTTP ${res.status}): ${responseText}`);
       }
 
-      const data = await res.json();
-      
-      if (data.error) {
-        throw new Error(typeof data.error === "string" ? data.error : JSON.stringify(data.error));
+      if (!res.ok || data.error) {
+        const errorMsg = typeof data.error === "object" ? (data.error.message || JSON.stringify(data.error)) : data.error;
+        throw new Error(errorMsg || `HTTP 錯誤: ${res.status}`);
       }
 
       const textResult = data.candidates?.[0]?.content?.parts?.[0]?.text;
       if (!textResult) {
-        throw new Error("無效的 API 回應格式。");
+        throw new Error("無效的 API 回應內容");
       }
 
       return textResult;
-    }
-
-    // Step Logic
-    async function triggerNextTurn() {
-      if (state.isThinking) return;
-
-      state.isThinking = true;
-      const targetAgent = state.currentTurn;
-
-      // Update UI
-      elTypingText.textContent = `AI ${targetAgent} 正在思考並回應中...`;
-      elTypingIndicator.classList.remove("hidden");
-      elTypingIndicator.classList.add("flex");
-
-      try {
-        const replyText = await fetchGeminiResponse(targetAgent);
-        
-        // Push message
-        state.messages.push({
-          id: Date.now(),
-          role: targetAgent,
-          text: replyText,
-          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
-        });
-
-        // Switch Turn
-        state.currentTurn = targetAgent === "A" ? "B" : "A";
-        elDisplayCurrentTurn.textContent = state.currentTurn === "A" ? "AI A (藍)" : "AI B (綠)";
-
-        renderMessages();
-
-      } catch (err) {
-        console.error("Dialogue Turn Error:", err);
-        alert(`呼叫失敗: ${err.message}`);
-        stopLoop();
-      } finally {
-        state.isThinking = false;
-        elTypingIndicator.classList.add("hidden");
-        elTypingIndicator.classList.remove("flex");
-      }
     }
 
     // Loop Management
