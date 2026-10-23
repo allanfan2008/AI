@@ -1,0 +1,788 @@
+<!DOCTYPE html>
+<html lang="zh-TW" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gemini 雙 AI 自動對話實驗室 (Dual AI Arena)</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        gemini: {
+                            blue: '#1a73e8',
+                            purple: '#8e24aa',
+                            dark: '#0b0f19',
+                            panel: '#131b2e',
+                            border: '#2a364f'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 9999px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+        
+        /* Pulse Animation for Typing Indicator */
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 0.3; transform: scale(0.8); }
+            50% { opacity: 1; transform: scale(1.1); }
+        }
+        .typing-dot {
+            animation: pulse-dot 1.4s infinite ease-in-out;
+        }
+        .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col h-screen overflow-hidden">
+
+    <!-- Header Navigation -->
+    <header class="bg-slate-900/90 backdrop-blur-md border-b border-slate-800 px-4 md:px-6 py-3 flex justify-between items-center z-10 shrink-0">
+        <div class="flex items-center gap-3">
+            <div class="p-2.5 bg-gradient-to-tr from-cyan-600 via-blue-600 to-purple-600 rounded-xl shadow-lg shadow-blue-900/30">
+                <i class="fa-solid font-bold text-xl text-white fa-comments"></i>
+            </div>
+            <div>
+                <h1 class="font-bold text-base md:text-lg leading-tight bg-gradient-to-r from-cyan-400 via-blue-300 to-purple-400 bg-clip-text text-transparent">
+                    Gemini 雙 AI 自動對話競技場
+                </h1>
+                <p class="text-[11px] text-slate-400 hidden sm:block">Agent A & Agent B Infinite Dynamic AI Debate Platform</p>
+            </div>
+        </div>
+
+        <!-- System Controls & Status Header -->
+        <div class="flex items-center gap-3">
+            <div id="statusBadge" class="flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium bg-slate-800 text-slate-300 border border-slate-700">
+                <span class="w-2 h-2 rounded-full bg-slate-400" id="statusDot"></span>
+                <span id="statusText">正在載入 API Key...</span>
+            </div>
+            
+            <button onclick="exportChatHistory()" class="hidden md:flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-medium transition border border-slate-700" title="匯出對話紀錄 (JSON)">
+                <i class="fa-solid fa-download"></i> 匯出歷史
+            </button>
+
+            <button id="toggleSettingsBtn" onclick="toggleSidebar()" class="p-2 hover:bg-slate-800 rounded-lg text-slate-300 hover:text-white transition border border-slate-800" title="面板控制與設定">
+                <i class="fa-solid fa-sliders text-lg"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <div class="flex flex-1 overflow-hidden relative">
+
+        <!-- Left Settings & Persona Sidebar -->
+        <aside id="sidebar" class="w-80 md:w-96 bg-slate-900 border-r border-slate-800 flex flex-col justify-between transition-all duration-300 z-20 absolute md:relative inset-y-0 left-0 transform -translate-x-full md:translate-x-0 shadow-2xl md:shadow-none">
+            <div class="p-5 overflow-y-auto space-y-5 flex-1">
+                <div class="flex justify-between items-center md:hidden border-b border-slate-800 pb-3">
+                    <h2 class="font-bold text-slate-200 text-sm flex items-center gap-2"><i class="fa-solid fa-gear text-blue-400"></i> 控制面板</h2>
+                    <button onclick="toggleSidebar()" class="text-slate-400 hover:text-white">
+                        <i class="fa-solid fa-xmark text-lg"></i>
+                    </button>
+                </div>
+
+                <!-- API Key Management & Header Mode -->
+                <div class="bg-slate-950/70 p-4 rounded-xl border border-slate-800 space-y-3">
+                    <div class="flex items-center justify-between">
+                        <label class="text-xs font-semibold uppercase tracking-wider text-cyan-400 flex items-center gap-2">
+                            <i class="fa-solid fa-key"></i> API Key 設定 (Header/Param)
+                        </label>
+                        <button onclick="fetchApiKeys()" class="text-[11px] text-blue-400 hover:text-blue-300 underline flex items-center gap-1">
+                            <i class="fa-solid fa-rotate-right"></i> 重新載入
+                        </button>
+                    </div>
+
+                    <div>
+                        <span class="text-[11px] text-slate-400 block mb-1">JSON API 來源網址:</span>
+                        <input type="text" id="apiUrlInput" value="https://raw.githubusercontent.com/allanfan2008/AI/refs/heads/main/api.json" 
+                               class="w-full bg-slate-900 border border-slate-800 rounded-lg p-2 text-xs text-slate-300 focus:outline-none focus:border-cyan-500 transition font-mono">
+                    </div>
+
+                    <div>
+                        <span class="text-[11px] text-slate-400 block mb-1">對話模型選擇:</span>
+                        <select id="modelSelect" class="w-full bg-slate-900 border border-slate-800 rounded-lg p-2 text-xs text-slate-200 focus:outline-none focus:border-cyan-500">
+                            <option value="gemini-flash-latest" selected>gemini-flash-latest (推薦)</option>
+                            <option value="gemini-1.5-flash">gemini-1.5-flash</option>
+                            <option value="gemini-2.5-flash">gemini-2.5-flash</option>
+                            <option value="gemini-1.5-pro">gemini-1.5-pro</option>
+                        </select>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2 pt-1">
+                        <div>
+                            <span class="text-[10px] text-cyan-400 font-semibold block mb-0.5">Agent A Key</span>
+                            <select id="keySelectA" class="w-full bg-slate-900 border border-slate-800 rounded-lg p-1.5 text-xs text-slate-200 focus:outline-none focus:border-cyan-500 font-mono">
+                                <option value="">解析中...</option>
+                            </select>
+                        </div>
+                        <div>
+                            <span class="text-[10px] text-purple-400 font-semibold block mb-0.5">Agent B Key</span>
+                            <select id="keySelectB" class="w-full bg-slate-900 border border-slate-800 rounded-lg p-1.5 text-xs text-slate-200 focus:outline-none focus:border-purple-500 font-mono">
+                                <option value="">解析中...</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div>
+                        <span class="text-[11px] text-slate-400 block mb-1">自訂 Key (多組請用逗號隔開):</span>
+                        <input type="password" id="customApiKeyInput" placeholder="AQ.Ab8RN... 或 AIzaSy..." 
+                               class="w-full bg-slate-900 border border-slate-800 rounded-lg p-2 text-xs text-slate-300 focus:outline-none focus:border-cyan-500 font-mono"
+                               oninput="applyCustomKeys(this.value)">
+                    </div>
+                </div>
+
+                <!-- Agent Roles & Prompt Templates -->
+                <div class="space-y-4">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-400 flex items-center gap-2">
+                            <i class="fa-solid fa-user-gear"></i> 人設與對話風格
+                        </h3>
+                        <button onclick="applyPreset('debate')" class="text-[10px] text-slate-400 hover:text-slate-200 underline">
+                            套用哲學爭辯範本
+                        </button>
+                    </div>
+
+                    <!-- Agent A -->
+                    <div class="bg-slate-950/40 p-3 rounded-xl border border-cyan-900/40">
+                        <div class="flex items-center justify-between mb-2">
+                            <div class="flex items-center gap-2">
+                                <span class="w-2.5 h-2.5 rounded-full bg-cyan-400"></span>
+                                <span class="font-bold text-xs text-cyan-300">Agent A 人設</span>
+                            </div>
+                            <span class="text-[10px] text-slate-500">主動發起/回應</span>
+                        </div>
+                        <input type="text" id="agentAName" value="蘇格拉底 (哲學思考)" placeholder="角色名稱" class="w-full bg-slate-900 border border-slate-800 rounded p-1.5 text-xs mb-2 text-slate-200 focus:border-cyan-500">
+                        <textarea id="agentAPrompt" rows="3" class="w-full bg-slate-900 border border-slate-800 rounded p-2 text-xs text-slate-300 focus:outline-none focus:border-cyan-500" placeholder="系統 Prompt">你是一位充滿好奇心與哲學深度的思想家。請用質疑、反思與啟發式的語氣討論問題，提出富有前瞻性與倫理思考的見解。</textarea>
+                    </div>
+
+                    <!-- Agent B -->
+                    <div class="bg-slate-950/40 p-3 rounded-xl border border-purple-900/40">
+                        <div class="flex items-center justify-between mb-2">
+                            <div class="flex items-center gap-2">
+                                <span class="w-2.5 h-2.5 rounded-full bg-purple-400"></span>
+                                <span class="font-bold text-xs text-purple-300">Agent B 人設</span>
+                            </div>
+                            <span class="text-[10px] text-slate-500">理性反駁/分析</span>
+                        </div>
+                        <input type="text" id="agentBName" value="愛因斯坦 (科學實證)" placeholder="角色名稱" class="w-full bg-slate-900 border border-slate-800 rounded p-1.5 text-xs mb-2 text-slate-200 focus:border-purple-500">
+                        <textarea id="agentBPrompt" rows="3" class="w-full bg-slate-900 border border-slate-800 rounded p-2 text-xs text-slate-300 focus:outline-none focus:border-purple-500" placeholder="系統 Prompt">你是一位極度講求邏輯、物理法則與數據實證的科學家。請用嚴謹、客觀且注重可驗證性的語氣進行反駁或補充。</textarea>
+                    </div>
+                </div>
+
+                <!-- Loop Parameters -->
+                <div class="space-y-3">
+                    <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-400 flex items-center gap-2">
+                        <i class="fa-solid fa-clock"></i> 自動輪替參數
+                    </h3>
+                    
+                    <div>
+                        <div class="flex justify-between text-xs mb-1">
+                            <span class="text-slate-300">每回合回應延遲:</span>
+                            <span id="delayValue" class="text-cyan-400 font-bold">2.5 秒</span>
+                        </div>
+                        <input type="range" id="delayRange" min="1" max="10" value="2.5" step="0.5" 
+                               oninput="document.getElementById('delayValue').innerText = this.value + ' 秒'" 
+                               class="w-full accent-cyan-500 bg-slate-800 rounded-lg cursor-pointer h-1.5">
+                    </div>
+
+                    <div>
+                        <label class="text-xs text-slate-300 block mb-1">種子議題 (對話開場白):</label>
+                        <input type="text" id="seedTopicInput" value="Explain how AI works in a few words, and whether consciousness can emerge from math." 
+                               class="w-full bg-slate-900 border border-slate-800 rounded p-2 text-xs text-slate-200 focus:outline-none focus:border-cyan-500">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sidebar Bottom Action Buttons -->
+            <div class="p-4 bg-slate-950/90 border-t border-slate-800 flex flex-col gap-2">
+                <button id="startBtn" onclick="startLoop()" class="w-full py-2.5 px-4 bg-gradient-to-r from-cyan-600 via-blue-600 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 text-white font-medium text-sm rounded-xl shadow-lg shadow-blue-950 flex items-center justify-center gap-2 transition">
+                    <i class="fa-solid fa-play"></i> 啟動無限對話
+                </button>
+                <button id="pauseBtn" onclick="pauseLoop()" disabled class="w-full py-2.5 px-4 bg-slate-800 hover:bg-slate-700 text-slate-300 disabled:opacity-40 disabled:cursor-not-allowed font-medium text-sm rounded-xl flex items-center justify-center gap-2 transition border border-slate-700">
+                    <i class="fa-solid fa-pause"></i> 暫停輪替
+                </button>
+                <div class="flex items-center gap-2 pt-1">
+                    <button onclick="clearChat()" class="flex-1 py-1.5 px-3 bg-red-950/20 hover:bg-red-900/30 text-red-400 font-medium text-xs rounded-lg border border-red-900/40 transition flex items-center justify-center gap-1">
+                        <i class="fa-solid fa-trash-can"></i> 清除歷史
+                    </button>
+                    <button onclick="exportChatHistory()" class="md:hidden flex-1 py-1.5 px-3 bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium text-xs rounded-lg border border-slate-700 transition flex items-center justify-center gap-1">
+                        <i class="fa-solid fa-download"></i> 匯出
+                    </button>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Dynamic Chat Display -->
+        <main class="flex-1 flex flex-col bg-slate-950 relative overflow-hidden">
+            
+            <!-- Statistics Header Bar -->
+            <div class="bg-slate-900/60 border-b border-slate-800/80 px-4 py-2 flex justify-between items-center text-[11px] text-slate-400">
+                <div class="flex items-center gap-4">
+                    <span><i class="fa-solid fa-comments text-cyan-400 mr-1"></i>回合計數: <strong id="turnCount" class="text-slate-200">0</strong></span>
+                    <span><i class="fa-solid fa-font text-purple-400 mr-1"></i>估計字數: <strong id="wordCount" class="text-slate-200">0</strong></span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span id="activeAgentBadge" class="px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700 text-[10px]">
+                        當前順位: Agent A
+                    </span>
+                </div>
+            </div>
+
+            <!-- Chat Message Scroll Region -->
+            <div id="chatBox" class="flex-1 overflow-y-auto p-4 md:p-6 space-y-4">
+                <!-- Welcome Interactive Card -->
+                <div id="welcomeBanner" class="max-w-xl mx-auto my-6 bg-slate-900/90 border border-slate-800 rounded-2xl p-6 text-center space-y-4 shadow-2xl">
+                    <div class="w-12 h-12 mx-auto bg-gradient-to-tr from-cyan-500/20 to-purple-500/20 rounded-2xl flex items-center justify-center text-cyan-400 text-2xl border border-cyan-500/30">
+                        <i class="fa-solid fa-diagram-project"></i>
+                    </div>
+                    <div class="space-y-1">
+                        <h2 class="text-slate-100 font-bold text-base">雙 API 自動交替對話系統</h2>
+                        <p class="text-slate-400 text-xs leading-relaxed">
+                            系統會自動嘗試從指定 API JSON 獲取 API Key，並透過 Header (<code class="bg-slate-800 px-1 py-0.5 rounded text-cyan-300">X-goog-api-key</code>) 發送請求。
+                        </p>
+                    </div>
+                    
+                    <div class="p-3 bg-slate-950/60 rounded-xl border border-slate-800 text-left text-xs space-y-1">
+                        <div class="text-cyan-400 font-semibold flex items-center gap-1.5">
+                            <i class="fa-solid fa-lightbulb"></i> 功能特點：
+                        </div>
+                        <ul class="list-disc list-inside text-slate-400 text-[11px] space-y-0.5">
+                            <li><strong>自動對話輪替：</strong>Agent A 與 Agent B 互相閱讀對方的歷史並思考回應。</li>
+                            <li><strong>人類即時插話：</strong>隨時在下方輸入框發送訊息，AI 會自動接著你的回應繼續辯論。</li>
+                            <li><strong>相容 Header/Param 驗證：</strong>支援傳送自訂 Gemini API Key。</li>
+                        </ul>
+                    </div>
+
+                    <button onclick="startLoop()" class="w-full py-2.5 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white rounded-xl text-xs font-semibold shadow-lg shadow-cyan-950/50 transition flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-bolt"></i> 啟動雙 AI 自動對話
+                    </button>
+                </div>
+            </div>
+
+            <!-- Floating Typing Bar -->
+            <div id="typingIndicator" class="hidden px-6 py-2 bg-slate-900/95 border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-400 shrink-0">
+                <div class="flex items-center gap-3">
+                    <div class="flex items-center gap-1">
+                        <div class="w-2 h-2 rounded-full bg-cyan-400 typing-dot"></div>
+                        <div class="w-2 h-2 rounded-full bg-blue-400 typing-dot"></div>
+                        <div class="w-2 h-2 rounded-full bg-purple-400 typing-dot"></div>
+                    </div>
+                    <span id="typingText" class="font-medium text-slate-300">Agent A 思考中...</span>
+                </div>
+                <span class="text-[10px] text-slate-500 font-mono">Gemini API Calling...</span>
+            </div>
+
+            <!-- Human Interaction Bottom Bar -->
+            <div class="p-3 md:p-4 bg-slate-900 border-t border-slate-800 shrink-0">
+                <form onsubmit="handleHumanSend(event)" class="max-w-4xl mx-auto flex items-center gap-2">
+                    <div class="relative flex-1">
+                        <input type="text" id="humanInput" placeholder="人類參與發言...（發送後 AI 將針對你的話題繼續辯論）" 
+                               class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-slate-100 focus:outline-none focus:border-amber-500/80 pl-10 placeholder:text-slate-500">
+                        <i class="fa-solid fa-user-astronaut text-amber-500/70 absolute left-3.5 top-3.5 text-sm"></i>
+                    </div>
+                    <select id="targetAgentSelect" class="hidden sm:block bg-slate-950 border border-slate-800 rounded-xl px-3 py-3 text-xs text-slate-300 focus:outline-none focus:border-amber-500">
+                        <option value="auto">下個回應: 自動接續</option>
+                        <option value="A">下個回應: Agent A</option>
+                        <option value="B">下個回應: Agent B</option>
+                    </select>
+                    <button type="submit" class="bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white px-5 py-3 rounded-xl font-medium text-sm flex items-center gap-2 transition shadow-lg shadow-amber-950 shrink-0">
+                        <i class="fa-solid fa-paper-plane"></i>
+                        <span class="hidden sm:inline">以人類身份送出</span>
+                    </button>
+                </form>
+            </div>
+        </main>
+    </div>
+
+    <!-- JavaScript Application Logic -->
+    <script>
+        // Global Application State
+        let apiKeys = [];
+        let isRunning = false;
+        let isFetching = false;
+        let activeTurn = 'A'; // 'A' or 'B'
+        let conversationHistory = []; // Array of { role: 'A'|'B'|'Human'|'system', name: string, text: string, timestamp: string }
+        let loopTimeoutId = null;
+        let turnCounter = 0;
+
+        // Initialize Application
+        window.addEventListener('DOMContentLoaded', () => {
+            fetchApiKeys();
+        });
+
+        // Toggle Settings Sidebar
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            sidebar.classList.toggle('-translate-x-full');
+        }
+
+        // Preset Persona Quick Switch
+        function applyPreset(type) {
+            if (type === 'debate') {
+                document.getElementById('agentAName').value = '蘇格拉底 (哲學家)';
+                document.getElementById('agentAPrompt').value = '你是一位古希臘哲學家。請使用詰問法（Socratic method），質疑對方的假設，並探討概念背後的本質與倫理意義。';
+                document.getElementById('agentBName').value = '愛因斯坦 (物理學家)';
+                document.getElementById('agentBPrompt').value = '你是一位嚴謹的理論物理學家。請從物理定律、客觀觀察與科學可驗證性的角度回應對手的論點。';
+            }
+        }
+
+        // 1. Fetch & Extract API Keys from JSON
+        async function fetchApiKeys() {
+            const urlInput = document.getElementById('apiUrlInput').value.trim();
+            updateStatus('loading', '存取 API Key JSON 中...');
+
+            try {
+                const response = await fetch(urlInput);
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                
+                const rawData = await response.json();
+                apiKeys = extractKeysFromJSON(rawData);
+
+                if (apiKeys.length === 0) {
+                    throw new Error("未解析到任何有效的 API Key 字串");
+                }
+
+                populateKeySelectors();
+                updateStatus('ready', `已載入 ${apiKeys.length} 組 API Key`);
+            } catch (err) {
+                console.warn("從 JSON 自動獲取 Key 失敗:", err);
+                updateStatus('error', 'JSON Key 讀取失敗，請手動填寫');
+                populateKeySelectorsFallback();
+            }
+        }
+
+        // Robust Key Parsing Supporting Various JSON Formats
+        function extractKeysFromJSON(data) {
+            let keys = [];
+
+            if (Array.isArray(data)) {
+                data.forEach(item => {
+                    if (typeof item === 'string') keys.push(item);
+                    else if (typeof item === 'object' && item !== null) {
+                        Object.values(item).forEach(val => {
+                            if (typeof val === 'string') keys.push(val);
+                        });
+                    }
+                });
+            } else if (typeof data === 'object' && data !== null) {
+                // Check direct known properties
+                if (data.key) keys.push(data.key);
+                if (data.apiKey) keys.push(data.apiKey);
+                if (data.keyA) keys.push(data.keyA);
+                if (data.keyB) keys.push(data.keyB);
+                if (Array.isArray(data.keys)) keys.push(...data.keys);
+
+                // Fallback scan all string values
+                Object.values(data).forEach(val => {
+                    if (typeof val === 'string') keys.push(val);
+                    else if (Array.isArray(val)) {
+                        val.forEach(v => { if (typeof v === 'string') keys.push(v); });
+                    }
+                });
+            }
+
+            // Filter duplicates and clean tokens
+            return [...new Set(keys)].map(k => k.trim()).filter(k => k.length > 8);
+        }
+
+        function populateKeySelectors() {
+            const selectA = document.getElementById('keySelectA');
+            const selectB = document.getElementById('keySelectB');
+
+            selectA.innerHTML = '';
+            selectB.innerHTML = '';
+
+            apiKeys.forEach((key, index) => {
+                const mask = key.substring(0, 6) + '...' + key.substring(key.length - 4);
+                const optA = new Option(`Key #${index + 1} (${mask})`, key);
+                const optB = new Option(`Key #${index + 1} (${mask})`, key);
+                selectA.add(optA);
+                selectB.add(optB);
+            });
+
+            // Default Agent B to the second key if multiple keys exist
+            if (apiKeys.length > 1) {
+                selectB.selectedIndex = 1;
+            }
+        }
+
+        function populateKeySelectorsFallback() {
+            const selectA = document.getElementById('keySelectA');
+            const selectB = document.getElementById('keySelectB');
+            selectA.innerHTML = '<option value="">未找到 Key (請手動輸入)</option>';
+            selectB.innerHTML = '<option value="">未找到 Key (請手動輸入)</option>';
+        }
+
+        function applyCustomKeys(rawInput) {
+            const keys = rawInput.split(',').map(k => k.trim()).filter(k => k.length > 8);
+            if (keys.length > 0) {
+                apiKeys = keys;
+                populateKeySelectors();
+                updateStatus('ready', `使用手動 Key (${apiKeys.length}組)`);
+            }
+        }
+
+        function updateStatus(state, message) {
+            const dot = document.getElementById('statusDot');
+            const text = document.getElementById('statusText');
+            text.innerText = message;
+
+            dot.className = 'w-2 h-2 rounded-full ';
+            if (state === 'ready') dot.classList.add('bg-emerald-400');
+            else if (state === 'active') dot.classList.add('bg-cyan-400', 'animate-pulse');
+            else if (state === 'loading') dot.classList.add('bg-amber-400', 'animate-pulse');
+            else if (state === 'error') dot.classList.add('bg-red-500');
+            else dot.classList.add('bg-slate-400');
+        }
+
+        // 2. Conversation Loop Controls
+        function startLoop() {
+            if (isRunning) return;
+
+            const keyA = getCurrentKey('A');
+            const keyB = getCurrentKey('B');
+
+            if (!keyA || !keyB) {
+                alert("請確保已為 Agent A 與 Agent B 配置有效的 API Key！");
+                return;
+            }
+
+            isRunning = true;
+            document.getElementById('startBtn').disabled = true;
+            document.getElementById('pauseBtn').disabled = false;
+            document.getElementById('welcomeBanner')?.remove();
+
+            // If history is empty, introduce seed topic
+            if (conversationHistory.length === 0) {
+                const seedTopic = document.getElementById('seedTopicInput').value.trim() || "Let's begin the discussion.";
+                addMessageToUI('System', '討論議題開場', seedTopic, 'system');
+                conversationHistory.push({ role: 'system', name: '討論議題', text: seedTopic, timestamp: getFormattedTime() });
+            }
+
+            updateStatus('active', '對話自動輪替中');
+            executeTurn();
+        }
+
+        function pauseLoop() {
+            isRunning = false;
+            if (loopTimeoutId) clearTimeout(loopTimeoutId);
+            document.getElementById('startBtn').disabled = false;
+            document.getElementById('pauseBtn').disabled = true;
+            hideTyping();
+            updateStatus('ready', '輪替已暫停');
+        }
+
+        function clearChat() {
+            pauseLoop();
+            conversationHistory = [];
+            turnCounter = 0;
+            updateStats();
+            
+            const chatBox = document.getElementById('chatBox');
+            chatBox.innerHTML = `
+                <div id="welcomeBanner" class="max-w-xl mx-auto my-6 bg-slate-900/90 border border-slate-800 rounded-2xl p-6 text-center space-y-3 shadow-xl">
+                    <div class="w-12 h-12 mx-auto bg-cyan-500/10 rounded-full flex items-center justify-center text-cyan-400 text-xl border border-cyan-500/20">
+                        <i class="fa-solid fa-rotate-left"></i>
+                    </div>
+                    <h2 class="text-slate-100 font-bold text-sm">歷史對話已重置</h2>
+                    <p class="text-slate-400 text-xs">點擊「啟動無限對話」展開全新的 AI 討論過程。</p>
+                </div>
+            `;
+            activeTurn = 'A';
+            updateActiveAgentBadge();
+        }
+
+        function getCurrentKey(agent) {
+            const select = document.getElementById(agent === 'A' ? 'keySelectA' : 'keySelectB');
+            return select.value || apiKeys[0] || '';
+        }
+
+        // 3. API Invocation & Dynamic Agent Response Loop
+        async function executeTurn() {
+            if (!isRunning || isFetching) return;
+
+            isFetching = true;
+            const currentAgent = activeTurn;
+            const agentName = document.getElementById(currentAgent === 'A' ? 'agentAName' : 'agentBName').value.trim() || `Agent ${currentAgent}`;
+            const systemPrompt = document.getElementById(currentAgent === 'A' ? 'agentAPrompt' : 'agentBPrompt').value.trim();
+            const apiKey = getCurrentKey(currentAgent);
+            const model = document.getElementById('modelSelect').value;
+
+            showTyping(`${agentName} (Agent ${currentAgent}) 正在思考與撰寫回應...`);
+            updateActiveAgentBadge();
+
+            try {
+                const responseText = await callGeminiApi(apiKey, model, systemPrompt, currentAgent);
+                
+                hideTyping();
+                
+                // Add to UI and State History
+                addMessageToUI(currentAgent, agentName, responseText);
+                conversationHistory.push({
+                    role: currentAgent,
+                    name: agentName,
+                    text: responseText,
+                    timestamp: getFormattedTime()
+                });
+
+                turnCounter++;
+                updateStats();
+
+                // Swap Active Turn
+                activeTurn = (currentAgent === 'A') ? 'B' : 'A';
+                updateActiveAgentBadge();
+
+                isFetching = false;
+
+                // Schedule next step if loop is active
+                if (isRunning) {
+                    const delaySec = parseFloat(document.getElementById('delayRange').value) || 2.5;
+                    loopTimeoutId = setTimeout(() => {
+                        executeTurn();
+                    }, delaySec * 1000);
+                }
+
+            } catch (err) {
+                console.error(`Agent ${currentAgent} API 請求失敗:`, err);
+                hideTyping();
+                isFetching = false;
+                
+                addMessageToUI('System', '請求錯誤', `Agent ${currentAgent} 發送失敗: ${err.message}。將在 5 秒後重試...`, 'error');
+                
+                if (isRunning) {
+                    loopTimeoutId = setTimeout(() => {
+                        executeTurn();
+                    }, 5000);
+                }
+            }
+        }
+
+        // Call Gemini REST Endpoint with Custom Headers as specified in Curl sample
+        async function callGeminiApi(apiKey, model, systemInstruction, currentAgent) {
+            const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
+
+            // Build Contextual Prompt
+            let promptText = `你正在與另一位 AI 或人類進行即時對話辯論。\n`;
+            promptText += `你的角色設定: ${systemInstruction}\n`;
+            promptText += `對話原則: 請維持角色風格，延伸歷史話題脈絡，提出富有說服力且簡明扼要的回應 (約 100~250 字)。\n\n【歷史對話紀錄】:\n`;
+
+            conversationHistory.forEach(msg => {
+                if (msg.role !== 'system') {
+                    promptText += `[${msg.name}]: ${msg.text}\n`;
+                } else {
+                    promptText += `[討論主題]: ${msg.text}\n`;
+                }
+            });
+
+            promptText += `\n請以 [${document.getElementById(currentAgent === 'A' ? 'agentAName' : 'agentBName').value}] 的身分回答：`;
+
+            const payload = {
+                contents: [{
+                    parts: [{ text: promptText }]
+                }]
+            };
+
+            // Send fetch passing the key in X-goog-api-key header and query parameter fallback
+            const headers = {
+                'Content-Type': 'application/json',
+                'X-goog-api-key': apiKey
+            };
+
+            // Fallback parameter if required
+            const requestUrl = `${endpoint}?key=${encodeURIComponent(apiKey)}`;
+
+            const response = await fetch(requestUrl, {
+                method: 'POST',
+                headers: headers,
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) {
+                const errJson = await response.json().catch(() => ({}));
+                const errMsg = errJson.error?.message || `HTTP 錯誤 ${response.status}`;
+                throw new Error(errMsg);
+            }
+
+            const data = await response.json();
+            const textResult = data.candidates?.[0]?.content?.parts?.[0]?.text;
+
+            if (!textResult) {
+                throw new Error("模型未返回任何文字內容");
+            }
+
+            return textResult.trim();
+        }
+
+        // 4. Human Intervention Listener
+        function handleHumanSend(event) {
+            event.preventDefault();
+            const inputEl = document.getElementById('humanInput');
+            const text = inputEl.value.trim();
+
+            if (!text) return;
+
+            inputEl.value = '';
+
+            // Add Human Entry
+            addMessageToUI('Human', '人類參與者', text, 'human');
+            conversationHistory.push({
+                role: 'Human',
+                name: '人類參與者',
+                text: text,
+                timestamp: getFormattedTime()
+            });
+
+            // Target Agent Override
+            const targetSelect = document.getElementById('targetAgentSelect').value;
+            if (targetSelect !== 'auto') {
+                activeTurn = targetSelect;
+            }
+
+            // Immediately Trigger Response
+            if (!isRunning && !isFetching) {
+                document.getElementById('welcomeBanner')?.remove();
+                isRunning = true;
+                document.getElementById('startBtn').disabled = true;
+                document.getElementById('pauseBtn').disabled = false;
+                updateStatus('active', '回應人類介入中...');
+                executeTurn();
+            } else if (isRunning && !isFetching) {
+                if (loopTimeoutId) clearTimeout(loopTimeoutId);
+                executeTurn();
+            }
+        }
+
+        // 5. UI Rendering & Utilities
+        function addMessageToUI(role, name, text, specialType = null) {
+            const chatBox = document.getElementById('chatBox');
+            const msgContainer = document.createElement('div');
+
+            let avatarBg = 'bg-cyan-600';
+            let badgeStyle = 'bg-cyan-500/10 text-cyan-300 border-cyan-500/30';
+            let bubbleStyle = 'bg-slate-900/90 text-slate-100 border-slate-800';
+            let icon = 'fa-robot';
+
+            if (role === 'A') {
+                avatarBg = 'bg-gradient-to-tr from-cyan-600 to-blue-600';
+                badgeStyle = 'bg-cyan-500/10 text-cyan-400 border-cyan-500/30';
+                icon = 'fa-brain';
+            } else if (role === 'B') {
+                avatarBg = 'bg-gradient-to-tr from-purple-600 to-pink-600';
+                badgeStyle = 'bg-purple-500/10 text-purple-400 border-purple-500/30';
+                icon = 'fa-atom';
+            } else if (role === 'Human' || specialType === 'human') {
+                avatarBg = 'bg-gradient-to-tr from-amber-500 to-orange-600';
+                badgeStyle = 'bg-amber-500/10 text-amber-400 border-amber-500/30';
+                bubbleStyle = 'bg-amber-950/30 text-amber-100 border-amber-800/40';
+                icon = 'fa-user-astronaut';
+            }
+
+            if (specialType === 'system' || specialType === 'error') {
+                msgContainer.className = `flex flex-col items-center my-3`;
+                const isError = specialType === 'error';
+                msgContainer.innerHTML = `
+                    <div class="px-4 py-2 rounded-xl border ${isError ? 'bg-red-950/40 border-red-800/50 text-red-300' : 'bg-slate-900/80 border-slate-800 text-slate-300'} text-xs text-center max-w-lg shadow-sm">
+                        <i class="fa-solid ${isError ? 'fa-triangle-exclamation text-red-400' : 'fa-circle-info text-cyan-400'} mr-1.5"></i>
+                        <span>${escapeHtml(text)}</span>
+                    </div>
+                `;
+            } else {
+                msgContainer.className = 'max-w-3xl mx-auto flex flex-col space-y-1 my-2 transition-all duration-300';
+                msgContainer.innerHTML = `
+                    <div class="flex items-center gap-2 ${role === 'Human' ? 'flex-row-reverse' : ''}">
+                        <div class="w-7 h-7 rounded-lg ${avatarBg} flex items-center justify-center text-white text-xs shadow-md shrink-0">
+                            <i class="fa-solid ${icon}"></i>
+                        </div>
+                        <span class="text-xs font-semibold px-2 py-0.5 rounded-full border ${badgeStyle}">
+                            ${escapeHtml(name)}
+                        </span>
+                        <span class="text-[10px] text-slate-500">${getFormattedTime()}</span>
+                    </div>
+                    <div class="mt-1 p-4 rounded-2xl border ${bubbleStyle} text-sm leading-relaxed shadow-lg backdrop-blur-sm ${role === 'Human' ? 'rounded-tr-none ml-auto max-w-[85%]' : 'rounded-tl-none mr-auto max-w-[92%]'}">
+                        ${formatMessageText(text)}
+                    </div>
+                `;
+            }
+
+            chatBox.appendChild(msgContainer);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        function showTyping(text) {
+            const indicator = document.getElementById('typingIndicator');
+            const textEl = document.getElementById('typingText');
+            textEl.innerText = text;
+            indicator.classList.remove('hidden');
+            const chatBox = document.getElementById('chatBox');
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        function hideTyping() {
+            document.getElementById('typingIndicator').classList.add('hidden');
+        }
+
+        function updateActiveAgentBadge() {
+            const badge = document.getElementById('activeAgentBadge');
+            const nameA = document.getElementById('agentAName').value.trim() || 'Agent A';
+            const nameB = document.getElementById('agentBName').value.trim() || 'Agent B';
+            
+            if (activeTurn === 'A') {
+                badge.innerText = `當前順位: ${nameA} (Agent A)`;
+                badge.className = 'px-2.5 py-0.5 rounded-full bg-cyan-950/80 text-cyan-300 border border-cyan-800 text-[10px] font-medium';
+            } else {
+                badge.innerText = `當前順位: ${nameB} (Agent B)`;
+                badge.className = 'px-2.5 py-0.5 rounded-full bg-purple-950/80 text-purple-300 border border-purple-800 text-[10px] font-medium';
+            }
+        }
+
+        function updateStats() {
+            document.getElementById('turnCount').innerText = turnCounter;
+            const totalWords = conversationHistory.reduce((acc, msg) => acc + (msg.text ? msg.text.length : 0), 0);
+            document.getElementById('wordCount').innerText = totalWords;
+        }
+
+        function exportChatHistory() {
+            if (conversationHistory.length === 0) {
+                alert("目前尚無可匯出的對話紀錄！");
+                return;
+            }
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(conversationHistory, null, 2));
+            const downloadAnchor = document.createElement('a');
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", `Gemini_Dual_AI_Dialogue_${Date.now()}.json`);
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+        }
+
+        function formatMessageText(text) {
+            return escapeHtml(text).replace(/\n/g, '<br>');
+        }
+
+        function escapeHtml(str) {
+            return str.replace(/&/g, "&amp;")
+                      .replace(/</g, "&lt;")
+                      .replace(/>/g, "&gt;")
+                      .replace(/"/g, "&quot;")
+                      .replace(/'/g, "&#039;");
+        }
+
+        function getFormattedTime() {
+            return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        }
+    </script>
+</body>
+</html>
