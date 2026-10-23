@@ -234,7 +234,7 @@
         return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
       }
 
-async function fetchGeminiResponse(agentType, retryCount = 3) {
+      async function fetchGeminiResponse(agentType, retryCount = 3) {
         if (!state.workerUrl) throw new Error("請先設定 Worker 網址");
         const persona = agentType === "A" ? state.personaA : state.personaB;
         const contents = [
@@ -312,7 +312,8 @@ async function fetchGeminiResponse(agentType, retryCount = 3) {
             throw new Error("串流回應內容空值");
           }
 
-          return newMessage.text;
+          // 💡 修正點：直接回傳空字串，因為訊息已經在串流中透過 state.messages.push 即時寫入了！
+          return "";
 
         } catch (err) {
           if (retryCount > 0 && (err.message.includes("high demand") || err.message.includes("network"))) {
@@ -323,6 +324,7 @@ async function fetchGeminiResponse(agentType, retryCount = 3) {
           throw err;
         }
       }
+
       async function triggerNextTurn() {
         if (state.isThinking) return;
         state.isThinking = true;
@@ -333,13 +335,10 @@ async function fetchGeminiResponse(agentType, retryCount = 3) {
         el.typingIndicator.classList.add("flex");
 
         try {
-          const reply = await fetchGeminiResponse(target);
-          state.messages.push({
-            id: Date.now(),
-            role: target,
-            text: reply,
-            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
-          });
+          // 呼叫串流函式，文字會直接即時寫入 state.messages
+          await fetchGeminiResponse(target);
+          
+          // 切換下一回合角色
           state.currentTurn = target === "A" ? "B" : "A";
           el.displayCurrentTurn.textContent = state.currentTurn === "A" ? "AI A (藍)" : "AI B (綠)";
           renderMessages();
