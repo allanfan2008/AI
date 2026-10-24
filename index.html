@@ -7,9 +7,9 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
-    .chat-scroll::-webkit-scrollbar { width: 6px; }
+    .chat-scroll::-webkit-scrollbar { width: 8px; }
     .chat-scroll::-webkit-scrollbar-track { background: rgba(0, 0, 0, 0.05); }
-    .chat-scroll::-webkit-scrollbar-thumb { background: rgba(0, 0, 0, 0.2); border-radius: 3px; }
+    .chat-scroll::-webkit-scrollbar-thumb { background: rgba(0, 0, 0, 0.2); border-radius: 4px; }
     @keyframes pulse-slow { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
     .animate-pulse-slow { animation: pulse-slow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
   </style>
@@ -17,41 +17,42 @@
 <body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col font-sans antialiased">
 
   <!-- Toast Notification Container -->
-  <div id="toast-container" class="fixed top-16 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+  <div id="toast-container" class="fixed top-20 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
 
   <!-- Header -->
-  <header class="bg-slate-800/85 backdrop-blur border-b border-slate-700/60 sticky top-0 z-20 px-4 py-3 shadow-lg">
+  <header class="bg-slate-800/85 backdrop-blur border-b border-slate-700/60 sticky top-0 z-20 px-4 py-3.5 shadow-lg">
     <div class="max-w-6xl mx-auto flex flex-wrap items-center justify-between gap-3">
       <div class="flex items-center space-x-3">
-        <div class="p-2 bg-indigo-600/30 border border-indigo-500/40 rounded-xl text-indigo-400">
-          <i class="fa-solid fa-comments text-xl"></i>
+        <div class="p-2.5 bg-indigo-600/30 border border-indigo-500/40 rounded-xl text-indigo-400">
+          <i class="fa-solid fa-comments text-2xl"></i>
         </div>
         <div>
-          <h1 class="font-bold text-lg leading-tight text-slate-100 flex items-center gap-2">
+          <h1 class="font-bold text-lg sm:text-xl leading-tight text-slate-100 flex items-center gap-2">
             Gemini Dual-AI Playground
-            <span class="text-xs px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">Worker Mode</span>
+            <span class="text-xs px-2.5 py-1 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">Worker Mode</span>
           </h1>
-          <p class="text-xs text-slate-400">Cloudflare Worker Proxy • 無限自動對話 • 人類自由對談</p>
+          <p class="text-xs sm:text-sm text-slate-400">Cloudflare Worker Proxy • 無限自動對話 • 人類自由對談</p>
         </div>
       </div>
 
-      <div class="flex items-center space-x-2 flex-wrap">
-        <button id="btn-toggle-loop" class="px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm transition flex items-center gap-1.5">
+      <!-- 放大頂部按鈕文字與間距 -->
+      <div class="flex items-center space-x-2.5 flex-wrap">
+        <button id="btn-toggle-loop" class="px-4 py-2 text-sm sm:text-base font-semibold rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm transition flex items-center gap-2">
           <i class="fa-solid fa-play"></i> <span id="lbl-toggle-loop">開始自動對話</span>
         </button>
-        <button id="btn-single-step" class="px-3 py-1.5 text-xs font-medium rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-200 transition flex items-center gap-1">
+        <button id="btn-single-step" class="px-3.5 py-2 text-sm sm:text-base font-medium rounded-xl bg-slate-700 hover:bg-slate-600 text-slate-200 transition flex items-center gap-1.5">
           <i class="fa-solid fa-forward-step"></i> 單步觸發
         </button>
-        <button id="btn-copy-chat" class="px-3 py-1.5 text-xs font-medium rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-200 transition flex items-center gap-1" title="複製所有對話紀錄">
+        <button id="btn-copy-chat" class="px-3.5 py-2 text-sm sm:text-base font-medium rounded-xl bg-slate-700 hover:bg-slate-600 text-slate-200 transition flex items-center gap-1.5" title="複製所有對話紀錄">
           <i class="fa-regular fa-copy"></i> 複製文字
         </button>
-        <button id="btn-summarize" class="px-3 py-1.5 text-xs font-medium rounded-lg bg-indigo-700 hover:bg-indigo-600 text-indigo-100 transition flex items-center gap-1" title="呼叫獨立評論員進行總結">
+        <button id="btn-summarize" class="px-3.5 py-2 text-sm sm:text-base font-medium rounded-xl bg-indigo-700 hover:bg-indigo-600 text-indigo-100 transition flex items-center gap-1.5" title="呼叫獨立評論員進行總結">
           <i class="fa-solid fa-wand-magic-sparkles"></i> 總結
         </button>
-        <button id="btn-clear" class="px-3 py-1.5 text-xs font-medium rounded-lg bg-slate-700/80 hover:bg-red-900/40 hover:text-red-300 text-slate-300 transition flex items-center gap-1">
+        <button id="btn-clear" class="px-3.5 py-2 text-sm sm:text-base font-medium rounded-xl bg-slate-700/80 hover:bg-red-900/40 hover:text-red-300 text-slate-300 transition flex items-center gap-1.5">
           <i class="fa-solid fa-trash-can"></i> 清除
         </button>
-        <button id="btn-settings" class="px-3 py-1.5 text-xs font-medium rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-200 transition flex items-center gap-1">
+        <button id="btn-settings" class="px-3.5 py-2 text-sm sm:text-base font-medium rounded-xl bg-slate-700 hover:bg-slate-600 text-slate-200 transition flex items-center gap-1.5">
           <i class="fa-solid fa-gear"></i> 設定
         </button>
       </div>
@@ -63,39 +64,38 @@
 
     <!-- Left Controls -->
     <aside class="md:col-span-1 flex flex-col gap-4">
-      <!-- 隱藏 Worker 網址顯示區塊 -->
       <div class="hidden">
         <div class="flex justify-between items-center mb-2">
-          <h2 class="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+          <h2 class="text-sm font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
             <i class="fa-solid fa-server text-indigo-400"></i> Worker 狀態
           </h2>
           <span id="status-badge" class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-700 text-slate-300">檢查中...</span>
         </div>
-        <div class="text-xs text-slate-400 truncate font-mono bg-slate-900/60 p-2 rounded border border-slate-800" id="current-worker-display">...</div>
+        <div class="text-sm text-slate-400 truncate font-mono bg-slate-900/60 p-2.5 rounded border border-slate-800" id="current-worker-display">...</div>
       </div>
 
       <div class="bg-slate-800/60 border border-slate-700/80 rounded-2xl p-4 shadow-sm flex-1 flex flex-col gap-3">
-        <h2 class="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+        <h2 class="text-base font-bold uppercase tracking-wider text-slate-300 flex items-center gap-2">
           <i class="fa-solid fa-sliders text-indigo-400"></i> 運行狀態
         </h2>
-        <div class="grid grid-cols-2 gap-2 text-xs">
-          <div class="bg-slate-900/40 p-2.5 rounded-xl border border-slate-800">
-            <div class="text-slate-400 text-[10px]">當前回合</div>
-            <div id="display-current-turn" class="text-base font-bold text-indigo-400 mt-0.5">AI A (藍)</div>
+        <div class="grid grid-cols-2 gap-2 text-sm">
+          <div class="bg-slate-900/40 p-3 rounded-xl border border-slate-800">
+            <div class="text-slate-400 text-xs">當前回合</div>
+            <div id="display-current-turn" class="text-lg sm:text-xl font-bold text-indigo-400 mt-1">AI A (藍)</div>
           </div>
-          <div class="bg-slate-900/40 p-2.5 rounded-xl border border-slate-800">
-            <div class="text-slate-400 text-[10px]">總對話數</div>
-            <div id="display-msg-count" class="text-base font-bold text-slate-200 mt-0.5">0</div>
+          <div class="bg-slate-900/40 p-3 rounded-xl border border-slate-800">
+            <div class="text-slate-400 text-xs">總對話數</div>
+            <div id="display-msg-count" class="text-lg sm:text-xl font-bold text-slate-200 mt-1">0</div>
           </div>
         </div>
-        <div class="text-xs space-y-2 mt-1">
+        <div class="text-sm space-y-3 mt-1">
           <div>
-            <label class="text-slate-400 text-xs block mb-1">自動發言間隔 (秒): <span id="delay-val" class="text-slate-200 font-semibold">3</span>s</label>
-            <input type="range" id="input-delay" min="1" max="10" value="3" class="w-full accent-indigo-500 bg-slate-700 h-1.5 rounded-lg appearance-none cursor-pointer">
+            <label class="text-slate-300 text-sm block mb-1.5">自動發言間隔 (秒): <span id="delay-val" class="text-slate-100 font-semibold">3</span>s</label>
+            <input type="range" id="input-delay" min="1" max="10" value="3" class="w-full accent-indigo-500 bg-slate-700 h-2 rounded-lg appearance-none cursor-pointer">
           </div>
           <div class="pt-2 border-t border-slate-700/60">
-            <label class="text-slate-400 text-xs block mb-1">初次對話主題 / 開場白</label>
-            <textarea id="input-seed" rows="3" class="w-full text-sm p-2.5 bg-slate-900/80 border border-slate-700 rounded-xl focus:outline-none focus:border-indigo-500 text-slate-200 resize-none">你好！我們今天來聊聊 AI 發展對人類社會的未來影響吧。</textarea>
+            <label class="text-slate-300 text-sm block mb-1.5">初次對話主題 / 開場白</label>
+            <textarea id="input-seed" rows="3" class="w-full text-base p-3 bg-slate-900/80 border border-slate-700 rounded-xl focus:outline-none focus:border-indigo-500 text-slate-200 resize-none">你好！我們今天來聊聊 AI 發展對人類社會的未來影響吧。</textarea>
           </div>
         </div>
       </div>
@@ -103,25 +103,25 @@
 
     <!-- Right Chat Area -->
     <section class="md:col-span-3 bg-slate-800/60 border border-slate-700/80 rounded-2xl flex flex-col overflow-hidden shadow-sm">
-      <div class="px-4 py-2.5 bg-slate-800/90 border-b border-slate-700/80 flex items-center justify-between text-xs sm:text-sm text-slate-400">
-        <div class="flex items-center space-x-3">
-          <span class="flex items-center gap-1.5 text-indigo-400 font-medium"><span class="w-2.5 h-2.5 rounded-full bg-indigo-500 inline-block"></span> AI A</span>
+      <div class="px-4.5 py-3.5 bg-slate-800/90 border-b border-slate-700/80 flex items-center justify-between text-sm sm:text-base text-slate-300">
+        <div class="flex items-center space-x-3.5">
+          <span class="flex items-center gap-2 text-indigo-300 font-semibold"><span class="w-3.5 h-3.5 rounded-full bg-indigo-500 inline-block"></span> AI A</span>
           <span>⇄</span>
-          <span class="flex items-center gap-1.5 text-emerald-400 font-medium"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block"></span> AI B</span>
+          <span class="flex items-center gap-2 text-emerald-300 font-semibold"><span class="w-3.5 h-3.5 rounded-full bg-emerald-500 inline-block"></span> AI B</span>
           <span>⇄</span>
-          <span class="flex items-center gap-1.5 text-amber-400 font-medium"><span class="w-2.5 h-2.5 rounded-full bg-amber-500 inline-block"></span> 評論員</span>
+          <span class="flex items-center gap-2 text-amber-300 font-semibold"><span class="w-3.5 h-3.5 rounded-full bg-amber-500 inline-block"></span> 評論員</span>
         </div>
         <div id="typing-indicator" class="hidden items-center gap-2 text-indigo-300 animate-pulse-slow">
-          <i class="fa-solid fa-circle-notch fa-spin"></i>
-          <span id="typing-text" class="text-xs">AI 正在思考中...</span>
+          <i class="fa-solid fa-circle-notch fa-spin text-base"></i>
+          <span id="typing-text" class="text-sm sm:text-base font-medium">AI 正在思考中...</span>
         </div>
       </div>
 
-      <div id="chat-box" class="flex-1 p-4 overflow-y-auto space-y-4 chat-scroll"></div>
+      <div id="chat-box" class="flex-1 p-4 sm:p-5 overflow-y-auto space-y-4 chat-scroll"></div>
 
-      <div class="p-3 bg-slate-900/80 border-t border-slate-700/80 flex gap-2 items-center">
-        <input type="text" id="human-input" class="flex-1 text-sm sm:text-base bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition" placeholder="人類參與對話... 輸入訊息插話">
-        <button id="btn-send-human" class="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs sm:text-sm font-semibold transition flex items-center gap-1.5">
+      <div class="p-3.5 bg-slate-900/80 border-t border-slate-700/80 flex gap-2.5 items-center">
+        <input type="text" id="human-input" class="flex-1 text-base sm:text-lg bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition" placeholder="人類參與對話... 輸入訊息插話">
+        <button id="btn-send-human" class="px-5 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-base font-semibold transition flex items-center gap-2">
           <i class="fa-solid fa-paper-plane"></i> 發送
         </button>
       </div>
@@ -131,26 +131,26 @@
   <!-- Settings Modal -->
   <div id="modal-settings" class="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
     <div class="bg-slate-800 border border-slate-700 rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl">
-      <div class="px-5 py-4 border-b border-slate-700 flex justify-between items-center">
-        <h3 class="font-bold text-base text-slate-100 flex items-center gap-2"><i class="fa-solid fa-sliders text-indigo-400"></i> 設定</h3>
-        <button id="btn-close-modal" class="text-slate-400 hover:text-slate-200"><i class="fa-solid fa-xmark text-lg"></i></button>
+      <div class="px-6 py-4.5 border-b border-slate-700 flex justify-between items-center">
+        <h3 class="font-bold text-lg sm:text-xl text-slate-100 flex items-center gap-2.5"><i class="fa-solid fa-sliders text-indigo-400"></i> 設定</h3>
+        <button id="btn-close-modal" class="text-slate-400 hover:text-slate-200 text-xl"><i class="fa-solid fa-xmark"></i></button>
       </div>
-      <div class="p-5 space-y-4 text-xs sm:text-sm">
+      <div class="p-6 space-y-5 text-base">
         <div>
-          <label class="block font-semibold text-slate-300 mb-1">Cloudflare Worker Proxy URL</label>
-          <input type="url" id="setting-worker-url" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-slate-200 font-mono focus:outline-none focus:border-indigo-500">
+          <label class="block font-semibold text-slate-300 mb-2">Cloudflare Worker Proxy URL</label>
+          <input type="url" id="setting-worker-url" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-slate-200 font-mono focus:outline-none focus:border-indigo-500 text-sm sm:text-base">
         </div>
         <div>
-          <label class="block font-semibold text-indigo-300 mb-1">AI A 角色設定</label>
-          <textarea id="setting-persona-a" rows="2" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2 text-slate-200 focus:outline-none focus:border-indigo-500 resize-none"></textarea>
+          <label class="block font-semibold text-indigo-300 mb-2">AI A 角色設定</label>
+          <textarea id="setting-persona-a" rows="2" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-slate-200 focus:outline-none focus:border-indigo-500 resize-none text-sm sm:text-base"></textarea>
         </div>
         <div>
-          <label class="block font-semibold text-emerald-300 mb-1">AI B 角色設定</label>
-          <textarea id="setting-persona-b" rows="2" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2 text-slate-200 focus:outline-none focus:border-emerald-500 resize-none"></textarea>
+          <label class="block font-semibold text-emerald-300 mb-2">AI B 角色設定</label>
+          <textarea id="setting-persona-b" rows="2" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-slate-200 focus:outline-none focus:border-emerald-500 resize-none text-sm sm:text-base"></textarea>
         </div>
       </div>
-      <div class="px-5 py-3 bg-slate-900/60 border-t border-slate-700 flex justify-end">
-        <button id="btn-save-settings" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-semibold text-xs sm:text-sm transition">儲存設定</button>
+      <div class="px-6 py-4 bg-slate-900/60 border-t border-slate-700 flex justify-end">
+        <button id="btn-save-settings" class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-semibold text-base transition">儲存設定</button>
       </div>
     </div>
   </div>
@@ -205,8 +205,8 @@
         const bgStyle = type === "success" 
           ? "bg-emerald-900/90 border-emerald-500/50 text-emerald-100" 
           : (type === "warning" ? "bg-amber-900/90 border-amber-500/50 text-amber-100" : "bg-slate-800/95 border-indigo-500/50 text-slate-100");
-        toast.className = `px-4 py-2.5 rounded-xl border text-xs sm:text-sm shadow-xl backdrop-blur transition-all duration-300 opacity-0 translate-y-2 pointer-events-auto flex items-center gap-2 ${bgStyle}`;
-        toast.innerHTML = `<i class="fa-solid ${type === 'success' ? 'fa-check-circle' : 'fa-circle-info'}"></i><span>${escapeHtml(message)}</span>`;
+        toast.className = `px-4.5 py-3 rounded-xl border text-sm sm:text-base shadow-xl backdrop-blur transition-all duration-300 opacity-0 translate-y-2 pointer-events-auto flex items-center gap-2.5 ${bgStyle}`;
+        toast.innerHTML = `<i class="fa-solid ${type === 'success' ? 'fa-check-circle' : 'fa-circle-info'} text-lg"></i><span>${escapeHtml(message)}</span>`;
         
         el.toastContainer.appendChild(toast);
         requestAnimationFrame(() => {
@@ -242,7 +242,7 @@
       function renderMessages() {
         el.chatBox.innerHTML = "";
         if (state.messages.length === 0) {
-          el.chatBox.innerHTML = `<div class="h-full flex flex-col items-center justify-center text-slate-500 text-sm py-12"><i class="fa-solid fa-comments text-4xl mb-3 opacity-30"></i><p>點擊「開始自動對話」啟動雙 AI 交流。</p></div>`;
+          el.chatBox.innerHTML = `<div class="h-full flex flex-col items-center justify-center text-slate-400 text-base py-16"><i class="fa-solid fa-comments text-5xl mb-3 opacity-30"></i><p>點擊「開始自動對話」啟動雙 AI 交流。</p></div>`;
           el.displayMsgCount.textContent = "0";
           return;
         }
@@ -253,22 +253,22 @@
           const isComm = msg.role === "Commentator";
 
           let bubbleBg = isA 
-            ? "bg-indigo-950/40 text-indigo-100 border-indigo-700/50" 
-            : (isB ? "bg-emerald-950/40 text-emerald-100 border-emerald-700/50" 
-            : (isComm ? "bg-amber-950/40 text-amber-100 border-amber-600/50" : "bg-slate-800 text-slate-200 border-slate-700"));
+            ? "bg-indigo-950/50 text-indigo-100 border-indigo-700/60" 
+            : (isB ? "bg-emerald-950/50 text-emerald-100 border-emerald-700/60" 
+            : (isComm ? "bg-amber-950/50 text-amber-100 border-amber-600/60" : "bg-slate-800 text-slate-200 border-slate-700"));
 
           let roleBadge = isA ? "AI A" : (isB ? "AI B" : (isComm ? "第三方評論員" : "人類"));
 
           let badgeStyle = isA 
-            ? "bg-indigo-500/20 text-indigo-300 border-indigo-500/30" 
-            : (isB ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/30" 
-            : (isComm ? "bg-amber-500/20 text-amber-300 border-amber-500/30" : "bg-purple-500/20 text-purple-300 border-purple-500/30"));
+            ? "bg-indigo-500/20 text-indigo-300 border-indigo-500/40" 
+            : (isB ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/40" 
+            : (isComm ? "bg-amber-500/20 text-amber-300 border-amber-500/40" : "bg-purple-500/20 text-purple-300 border-purple-500/40"));
 
           let alignClass = isA ? "justify-start" : (isB ? "justify-end" : "justify-center");
 
           const div = document.createElement("div");
-          div.className = `flex ${alignClass} mb-3`;
-          div.innerHTML = `<div class="${isComm ? 'w-full' : 'max-w-[88%]' } border ${bubbleBg} rounded-2xl p-4 shadow-sm space-y-2"><div class="flex items-center justify-between gap-3 text-xs"><span class="px-2.5 py-0.5 rounded-full border text-xs font-semibold ${badgeStyle}">${roleBadge}</span><span class="text-slate-400">${msg.time}</span></div><div class="text-sm sm:text-base whitespace-pre-wrap leading-relaxed">${escapeHtml(msg.text)}</div></div>`;
+          div.className = `flex ${alignClass} mb-4`;
+          div.innerHTML = `<div class="${isComm ? 'w-full' : 'max-w-[90%]' } border ${bubbleBg} rounded-2xl p-4 sm:p-5 shadow-md space-y-2.5"><div class="flex items-center justify-between gap-3 text-sm"><span class="px-3.5 py-1 rounded-full border text-xs sm:text-sm font-bold ${badgeStyle}">${roleBadge}</span><span class="text-slate-400 text-xs sm:text-sm">${msg.time}</span></div><div class="text-lg sm:text-xl font-normal whitespace-pre-wrap leading-relaxed">${escapeHtml(msg.text)}</div></div>`;
           el.chatBox.appendChild(div);
         });
 
@@ -544,7 +544,7 @@ ${dialogueTranscript}`;
       function startLoop() {
         state.isLooping = true;
         el.lblToggleLoop.textContent = "暫停自動對話";
-        el.btnToggleLoop.className = "px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-amber-600 hover:bg-amber-500 text-white shadow-sm transition flex items-center gap-1.5";
+        el.btnToggleLoop.className = "px-4 py-2 text-sm sm:text-base font-semibold rounded-xl bg-amber-600 hover:bg-amber-500 text-white shadow-sm transition flex items-center gap-2";
         el.btnToggleLoop.querySelector("i").className = "fa-solid fa-pause";
         runLoopCycle();
       }
@@ -553,7 +553,7 @@ ${dialogueTranscript}`;
         state.isLooping = false;
         if (state.loopTimer) clearTimeout(state.loopTimer);
         el.lblToggleLoop.textContent = "開始自動對話";
-        el.btnToggleLoop.className = "px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm transition flex items-center gap-1.5";
+        el.btnToggleLoop.className = "px-4 py-2 text-sm sm:text-base font-semibold rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm transition flex items-center gap-2";
         el.btnToggleLoop.querySelector("i").className = "fa-solid fa-play";
       }
 
