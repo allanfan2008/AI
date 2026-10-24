@@ -268,7 +268,7 @@
 
           const div = document.createElement("div");
           div.className = `flex ${alignClass} mb-3`;
-          div.innerHTML = `<div class="${isComm ? 'w-full' : 'max-w-[85%]'} border ${bubbleBg} rounded-2xl p-3.5 shadow-sm space-y-1.5"><div class="flex items-center justify-between gap-3 text-[11px]"><span class="px-2 py-0.5 rounded-full border text-[10px] font-semibold ${badgeStyle}">${roleBadge}</span><span class="text-slate-500">${msg.time}</span></div><div class="text-xs sm:text-sm whitespace-pre-wrap leading-relaxed">${escapeHtml(msg.text)}</div></div>`;
+          div.innerHTML = `<div class="${isComm ? 'w-full' : 'max-w-[85%]' } border ${bubbleBg} rounded-2xl p-3.5 shadow-sm space-y-1.5"><div class="flex items-center justify-between gap-3 text-[11px]"><span class="px-2 py-0.5 rounded-full border text-[10px] font-semibold ${badgeStyle}">${roleBadge}</span><span class="text-slate-500">${msg.time}</span></div><div class="text-xs sm:text-sm whitespace-pre-wrap leading-relaxed">${escapeHtml(msg.text)}</div></div>`;
           el.chatBox.appendChild(div);
         });
 
@@ -553,3 +553,66 @@ ${dialogueTranscript}`;
         state.isLooping = false;
         if (state.loopTimer) clearTimeout(state.loopTimer);
         el.lblToggleLoop.textContent = "開始自動對話";
+        el.btnToggleLoop.className = "px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm transition flex items-center gap-1.5";
+        el.btnToggleLoop.querySelector("i").className = "fa-solid fa-play";
+      }
+
+      el.btnToggleLoop.addEventListener("click", () => {
+        if (state.isLooping) stopLoop();
+        else startLoop();
+      });
+
+      el.btnSingleStep.addEventListener("click", () => {
+        stopLoop();
+        triggerNextTurn();
+      });
+
+      el.btnCopyChat.addEventListener("click", copyAllMessages);
+      el.btnSummarize.addEventListener("click", triggerCommentatorSummary);
+
+      el.btnClear.addEventListener("click", () => {
+        stopLoop();
+        state.messages = [];
+        state.currentTurn = "A";
+        el.displayCurrentTurn.textContent = "AI A (藍)";
+        renderMessages();
+        showToast("已清除所有對話", "info");
+      });
+
+      el.btnSettings.addEventListener("click", () => el.modalSettings.classList.remove("hidden"));
+      el.btnCloseModal.addEventListener("click", () => el.modalSettings.classList.add("hidden"));
+
+      el.btnSaveSettings.addEventListener("click", () => {
+        state.workerUrl = el.settingWorkerUrl.value.trim();
+        state.personaA = el.settingPersonaA.value.trim();
+        state.personaB = el.settingPersonaB.value.trim();
+        localStorage.setItem("workerUrl", state.workerUrl);
+        localStorage.setItem("personaA", state.personaA);
+        localStorage.setItem("personaB", state.personaB);
+        updateWorkerDisplay();
+        el.modalSettings.classList.add("hidden");
+        showToast("設定已成功儲存", "success");
+      });
+
+      el.inputDelay.addEventListener("input", (e) => {
+        state.delaySec = parseInt(e.target.value, 10);
+        el.delayVal.textContent = state.delaySec;
+      });
+
+      function sendHuman() {
+        const text = el.humanInput.value.trim();
+        if (!text) return;
+        state.messages.push({ id: Date.now(), role: "Human", text, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) });
+        el.humanInput.value = "";
+        renderMessages();
+        if (!state.isThinking) triggerNextTurn();
+      }
+
+      el.btnSendHuman.addEventListener("click", sendHuman);
+      el.humanInput.addEventListener("keydown", (e) => { if (e.key === "Enter") sendHuman(); });
+
+      init();
+    });
+  </script>
+</body>
+</html>
