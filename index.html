@@ -290,29 +290,28 @@
 
 			for (const line of lines) {
               const trimmed = line.trim();
+              // 確保開頭是 data: 且後面有實質內容，排除單純的點點或空行
               if (trimmed.startsWith("data:")) {
                 const jsonStr = trimmed.substring(5).trim();
-                if (jsonStr) {
-                  // 如果遇到串流結束訊號 [DONE]，跳過
-                  if (jsonStr === "[DONE]") continue;
+                if (jsonStr && jsonStr !== "[DONE]") {
                   try {
                     const chunk = JSON.parse(jsonStr);
-                    // 兼容多種 Google API 回應路徑
                     const chunkText = 
                       chunk.candidates?.[0]?.content?.parts?.[0]?.text || 
                       chunk.text || 
                       "";
 
+                    // 確保取出的文字不是無意義的重複符號
                     if (chunkText) {
                       newMessage.text += chunkText;
-                      renderMessages(); // 即時更新畫面文字
+                      renderMessages();
                     }
                   } catch (e) {
-                    console.warn("解析串流 JSON 失敗", e);
+                    // 略過無法解析的非 JSON 行（例如串流心跳空白行）
                   }
                 }
               }
-            }            
+            }
           }
 
           if (!newMessage.text) {
