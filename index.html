@@ -16,6 +16,9 @@
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col font-sans antialiased">
 
+  <!-- Toast Notification Container -->
+  <div id="toast-container" class="fixed top-16 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
   <!-- Header -->
   <header class="bg-slate-800/85 backdrop-blur border-b border-slate-700/60 sticky top-0 z-20 px-4 py-3 shadow-lg">
     <div class="max-w-6xl mx-auto flex flex-wrap items-center justify-between gap-3">
@@ -32,12 +35,18 @@
         </div>
       </div>
 
-      <div class="flex items-center space-x-2">
+      <div class="flex items-center space-x-2 flex-wrap">
         <button id="btn-toggle-loop" class="px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm transition flex items-center gap-1.5">
           <i class="fa-solid fa-play"></i> <span id="lbl-toggle-loop">開始自動對話</span>
         </button>
         <button id="btn-single-step" class="px-3 py-1.5 text-xs font-medium rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-200 transition flex items-center gap-1">
           <i class="fa-solid fa-forward-step"></i> 單步觸發
+        </button>
+        <button id="btn-copy-chat" class="px-3 py-1.5 text-xs font-medium rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-200 transition flex items-center gap-1" title="複製所有對話紀錄">
+          <i class="fa-regular fa-copy"></i> 複製文字
+        </button>
+        <button id="btn-summarize" class="px-3 py-1.5 text-xs font-medium rounded-lg bg-indigo-700 hover:bg-indigo-600 text-indigo-100 transition flex items-center gap-1" title="呼叫獨立評論員進行總結">
+          <i class="fa-solid fa-wand-magic-sparkles"></i> 總結
         </button>
         <button id="btn-clear" class="px-3 py-1.5 text-xs font-medium rounded-lg bg-slate-700/80 hover:bg-red-900/40 hover:text-red-300 text-slate-300 transition flex items-center gap-1">
           <i class="fa-solid fa-trash-can"></i> 清除
@@ -99,6 +108,8 @@
           <span class="flex items-center gap-1.5 text-indigo-400 font-medium"><span class="w-2.5 h-2.5 rounded-full bg-indigo-500 inline-block"></span> AI A</span>
           <span>⇄</span>
           <span class="flex items-center gap-1.5 text-emerald-400 font-medium"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block"></span> AI B</span>
+          <span>⇄</span>
+          <span class="flex items-center gap-1.5 text-amber-400 font-medium"><span class="w-2.5 h-2.5 rounded-full bg-amber-500 inline-block"></span> 評論員</span>
         </div>
         <div id="typing-indicator" class="hidden items-center gap-2 text-indigo-300 animate-pulse-slow">
           <i class="fa-solid fa-circle-notch fa-spin"></i>
@@ -165,6 +176,8 @@
         btnToggleLoop: document.getElementById("btn-toggle-loop"),
         lblToggleLoop: document.getElementById("lbl-toggle-loop"),
         btnSingleStep: document.getElementById("btn-single-step"),
+        btnCopyChat: document.getElementById("btn-copy-chat"),
+        btnSummarize: document.getElementById("btn-summarize"),
         btnClear: document.getElementById("btn-clear"),
         btnSettings: document.getElementById("btn-settings"),
         modalSettings: document.getElementById("modal-settings"),
@@ -183,8 +196,28 @@
         typingIndicator: document.getElementById("typing-indicator"),
         typingText: document.getElementById("typing-text"),
         humanInput: document.getElementById("human-input"),
-        btnSendHuman: document.getElementById("btn-send-human")
+        btnSendHuman: document.getElementById("btn-send-human"),
+        toastContainer: document.getElementById("toast-container")
       };
+
+      function showToast(message, type = "info") {
+        const toast = document.createElement("div");
+        const bgStyle = type === "success" 
+          ? "bg-emerald-900/90 border-emerald-500/50 text-emerald-100" 
+          : (type === "warning" ? "bg-amber-900/90 border-amber-500/50 text-amber-100" : "bg-slate-800/95 border-indigo-500/50 text-slate-100");
+        toast.className = `px-4 py-2.5 rounded-xl border text-xs shadow-xl backdrop-blur transition-all duration-300 opacity-0 translate-y-2 pointer-events-auto flex items-center gap-2 ${bgStyle}`;
+        toast.innerHTML = `<i class="fa-solid ${type === 'success' ? 'fa-check-circle' : 'fa-circle-info'}"></i><span>${escapeHtml(message)}</span>`;
+        
+        el.toastContainer.appendChild(toast);
+        requestAnimationFrame(() => {
+          toast.classList.remove("opacity-0", "translate-y-2");
+        });
+
+        setTimeout(() => {
+          toast.classList.add("opacity-0", "-translate-y-2");
+          setTimeout(() => toast.remove(), 300);
+        }, 2500);
+      }
 
       function init() {
         el.settingWorkerUrl.value = state.workerUrl;
@@ -216,14 +249,26 @@
 
         state.messages.forEach(msg => {
           const isA = msg.role === "A";
-          let bubbleBg = isA ? "bg-indigo-950/40 text-indigo-100 border-indigo-700/50" : (msg.role === "B" ? "bg-emerald-950/40 text-emerald-100 border-emerald-700/50" : "bg-slate-800 text-slate-200 border-slate-700");
-          let roleBadge = isA ? "AI A" : (msg.role === "B" ? "AI B" : "人類");
-          let badgeStyle = isA ? "bg-indigo-500/20 text-indigo-300 border-indigo-500/30" : (msg.role === "B" ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/30" : "bg-purple-500/20 text-purple-300 border-purple-500/30");
-          let alignClass = isA ? "justify-start" : (msg.role === "B" ? "justify-end" : "justify-center");
+          const isB = msg.role === "B";
+          const isComm = msg.role === "Commentator";
+
+          let bubbleBg = isA 
+            ? "bg-indigo-950/40 text-indigo-100 border-indigo-700/50" 
+            : (isB ? "bg-emerald-950/40 text-emerald-100 border-emerald-700/50" 
+            : (isComm ? "bg-amber-950/40 text-amber-100 border-amber-600/50" : "bg-slate-800 text-slate-200 border-slate-700"));
+
+          let roleBadge = isA ? "AI A" : (isB ? "AI B" : (isComm ? "第三方評論員" : "人類"));
+
+          let badgeStyle = isA 
+            ? "bg-indigo-500/20 text-indigo-300 border-indigo-500/30" 
+            : (isB ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/30" 
+            : (isComm ? "bg-amber-500/20 text-amber-300 border-amber-500/30" : "bg-purple-500/20 text-purple-300 border-purple-500/30"));
+
+          let alignClass = isA ? "justify-start" : (isB ? "justify-end" : "justify-center");
 
           const div = document.createElement("div");
           div.className = `flex ${alignClass} mb-3`;
-          div.innerHTML = `<div class="max-w-[85%] border ${bubbleBg} rounded-2xl p-3.5 shadow-sm space-y-1.5"><div class="flex items-center justify-between gap-3 text-[11px]"><span class="px-2 py-0.5 rounded-full border text-[10px] font-semibold ${badgeStyle}">${roleBadge}</span><span class="text-slate-500">${msg.time}</span></div><div class="text-xs sm:text-sm whitespace-pre-wrap leading-relaxed">${escapeHtml(msg.text)}</div></div>`;
+          div.innerHTML = `<div class="${isComm ? 'w-full' : 'max-w-[85%]'} border ${bubbleBg} rounded-2xl p-3.5 shadow-sm space-y-1.5"><div class="flex items-center justify-between gap-3 text-[11px]"><span class="px-2 py-0.5 rounded-full border text-[10px] font-semibold ${badgeStyle}">${roleBadge}</span><span class="text-slate-500">${msg.time}</span></div><div class="text-xs sm:text-sm whitespace-pre-wrap leading-relaxed">${escapeHtml(msg.text)}</div></div>`;
           el.chatBox.appendChild(div);
         });
 
@@ -246,7 +291,7 @@
         state.messages.slice(-2).forEach(msg => {
           contents.push({
             role: msg.role === agentType ? "model" : "user",
-            parts: [{ text: `${msg.role === 'Human' ? '[人類]' : ''}${msg.text}` }]
+            parts: [{ text: `${msg.role === 'Human' ? '[人類]' : (msg.role === 'Commentator' ? '[第三方評論員]' : '')}${msg.text}` }]
           });
         });
 
@@ -305,7 +350,7 @@
                       renderMessages();
                     }
                   } catch (e) {
-                    // 略過無法解析的非 JSON 行
+                    // 略過無法解析行
                   }
                 }
               }
@@ -333,6 +378,136 @@
         }
       }
 
+      async function triggerCommentatorSummary() {
+        if (state.messages.length === 0) {
+          showToast("目前尚無對話內容可供總結", "warning");
+          return;
+        }
+
+        stopLoop();
+        state.isThinking = true;
+
+        el.typingText.textContent = "第三方評論員正在分析與總結中...";
+        el.typingIndicator.classList.remove("hidden");
+        el.typingIndicator.classList.add("flex");
+
+        const dialogueTranscript = state.messages.map(m => {
+          const roleLabel = m.role === 'A' ? 'AI A' : (m.role === 'B' ? 'AI B' : (m.role === 'Human' ? '人類' : '評論員'));
+          return `[${m.time}] ${roleLabel}: ${m.text}`;
+        }).join("\n\n");
+
+        const summaryPrompt = `你是一位客觀、嚴謹且精闢的第三方評論員。請針對以下整段對話紀錄進行深度總結：
+
+1. **對話核心主題**
+2. **AI A 與 AI B（及人類參與者）的主要立場與爭執焦點**
+3. **客觀評論與洞察總結**
+
+以下為完整對話紀錄：
+${dialogueTranscript}`;
+
+        const contents = [
+          { role: "user", parts: [{ text: summaryPrompt }] }
+        ];
+
+        const newMessage = {
+          id: Date.now(),
+          role: "Commentator",
+          text: "",
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+        };
+
+        state.messages.push(newMessage);
+        renderMessages();
+
+        try {
+          const res = await fetch(state.workerUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "X-Agent-Type": "Commentator" },
+            body: JSON.stringify({ contents })
+          });
+
+          if (!res.ok) {
+            const errText = await res.text();
+            throw new Error(`HTTP 錯誤 ${res.status}: ${errText}`);
+          }
+
+          const reader = res.body.getReader();
+          const decoder = new TextDecoder();
+          let buffer = "";
+
+          while (true) {
+            const { value, done } = await reader.read();
+            if (done) break;
+
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split("\n");
+            buffer = lines.pop();
+
+            for (const line of lines) {
+              const trimmed = line.trim();
+              if (trimmed.startsWith("data:")) {
+                const jsonStr = trimmed.substring(5).trim();
+                if (jsonStr && jsonStr !== "[DONE]") {
+                  try {
+                    const chunk = JSON.parse(jsonStr);
+                    const chunkText = 
+                      chunk.candidates?.[0]?.content?.parts?.[0]?.text || 
+                      chunk.text || 
+                      chunk.content?.parts?.[0]?.text ||
+                      "";
+
+                    if (chunkText) {
+                      newMessage.text += chunkText;
+                      renderMessages();
+                    }
+                  } catch (e) {
+                    // 略過無法解析行
+                  }
+                }
+              }
+            }
+          }
+
+          if (!newMessage.text) {
+            throw new Error("評論員回應內容空值");
+          }
+
+          showToast("評論員總結完成！", "success");
+
+        } catch (err) {
+          if (newMessage.text === "") {
+            const index = state.messages.indexOf(newMessage);
+            if (index > -1) state.messages.splice(index, 1);
+            renderMessages();
+          }
+          console.error(err);
+          alert(`總結失敗: ${err.message}`);
+        } finally {
+          state.isThinking = false;
+          el.typingIndicator.classList.add("hidden");
+          el.typingIndicator.classList.remove("flex");
+        }
+      }
+
+      function copyAllMessages() {
+        if (state.messages.length === 0) {
+          showToast("尚無文字可複製", "warning");
+          return;
+        }
+
+        const formattedText = state.messages.map(m => {
+          const roleLabel = m.role === 'A' ? 'AI A' : (m.role === 'B' ? 'AI B' : (m.role === 'Human' ? '人類' : '第三方評論員'));
+          return `[${m.time}] ${roleLabel}:\n${m.text}`;
+        }).join("\n\n----------------------------------------\n\n");
+
+        navigator.clipboard.writeText(formattedText).then(() => {
+          showToast("已成功複製全部對話文字！", "success");
+        }).catch(err => {
+          console.error("複製失敗", err);
+          showToast("複製失敗，請手動選取", "warning");
+        });
+      }
+
       async function triggerNextTurn() {
         if (state.isThinking) return;
         state.isThinking = true;
@@ -344,7 +519,6 @@
 
         try {
           await fetchGeminiResponse(target);
-          
           state.currentTurn = target === "A" ? "B" : "A";
           el.displayCurrentTurn.textContent = state.currentTurn === "A" ? "AI A (藍)" : "AI B (綠)";
           renderMessages();
@@ -379,61 +553,3 @@
         state.isLooping = false;
         if (state.loopTimer) clearTimeout(state.loopTimer);
         el.lblToggleLoop.textContent = "開始自動對話";
-        el.btnToggleLoop.className = "px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm transition flex items-center gap-1.5";
-        el.btnToggleLoop.querySelector("i").className = "fa-solid fa-play";
-      }
-
-      el.btnToggleLoop.addEventListener("click", () => {
-        if (state.isLooping) stopLoop();
-        else startLoop();
-      });
-
-      el.btnSingleStep.addEventListener("click", () => {
-        stopLoop();
-        triggerNextTurn();
-      });
-
-      el.btnClear.addEventListener("click", () => {
-        stopLoop();
-        state.messages = [];
-        state.currentTurn = "A";
-        el.displayCurrentTurn.textContent = "AI A (藍)";
-        renderMessages();
-      });
-
-      el.btnSettings.addEventListener("click", () => el.modalSettings.classList.remove("hidden"));
-      el.btnCloseModal.addEventListener("click", () => el.modalSettings.classList.add("hidden"));
-
-      el.btnSaveSettings.addEventListener("click", () => {
-        state.workerUrl = el.settingWorkerUrl.value.trim();
-        state.personaA = el.settingPersonaA.value.trim();
-        state.personaB = el.settingPersonaB.value.trim();
-        localStorage.setItem("workerUrl", state.workerUrl);
-        localStorage.setItem("personaA", state.personaA);
-        localStorage.setItem("personaB", state.personaB);
-        updateWorkerDisplay();
-        el.modalSettings.classList.add("hidden");
-      });
-
-      el.inputDelay.addEventListener("input", (e) => {
-        state.delaySec = parseInt(e.target.value, 10);
-        el.delayVal.textContent = state.delaySec;
-      });
-
-      function sendHuman() {
-        const text = el.humanInput.value.trim();
-        if (!text) return;
-        state.messages.push({ id: Date.now(), role: "Human", text, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) });
-        el.humanInput.value = "";
-        renderMessages();
-        if (!state.isThinking) triggerNextTurn();
-      }
-
-      el.btnSendHuman.addEventListener("click", sendHuman);
-      el.humanInput.addEventListener("keydown", (e) => { if (e.key === "Enter") sendHuman(); });
-
-      init();
-    });
-  </script>
-</body>
-</html>
