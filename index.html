@@ -54,7 +54,8 @@
 
     <!-- Left Controls -->
     <aside class="md:col-span-1 flex flex-col gap-4">
-      <div class="bg-slate-800/60 border border-slate-700/80 rounded-2xl p-4 shadow-sm">
+      <!-- 隱藏 Worker 網址顯示區塊 -->
+      <div class="hidden">
         <div class="flex justify-between items-center mb-2">
           <h2 class="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
             <i class="fa-solid fa-server text-indigo-400"></i> Worker 狀態
@@ -253,6 +254,15 @@
           contents.push({ role: "user", parts: [{ text: el.inputSeed.value.trim() || "開始對話" }] });
         }
 
+        const newMessage = {
+          id: Date.now(),
+          role: agentType,
+          text: "",
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+        };
+        state.messages.push(newMessage);
+        renderMessages();
+
         try {
           const res = await fetch(state.workerUrl, {
             method: "POST",
@@ -265,17 +275,6 @@
             throw new Error(`HTTP 錯誤 ${res.status}: ${errText}`);
           }
 
-          // 準備一個空的訊息物件用來即時塞入串流文字
-          const newMessage = {
-            id: Date.now(),
-            role: agentType,
-            text: "",
-            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
-          };
-          state.messages.push(newMessage);
-          renderMessages();
-
-          // 讀取 SSE 串流資料
           const reader = res.body.getReader();
           const decoder = new TextDecoder();
           let buffer = "";
@@ -286,11 +285,10 @@
 
             buffer += decoder.decode(value, { stream: true });
             const lines = buffer.split("\n");
-            buffer = lines.pop(); // 保留未完成的行
+            buffer = lines.pop();
 
-			for (const line of lines) {
+            for (const line of lines) {
               const trimmed = line.trim();
-              // 確保開頭是 data: 且後面有實質內容，排除單純的點點或空行
               if (trimmed.startsWith("data:")) {
                 const jsonStr = trimmed.substring(5).trim();
                 if (jsonStr && jsonStr !== "[DONE]") {
@@ -299,15 +297,15 @@
                     const chunkText = 
                       chunk.candidates?.[0]?.content?.parts?.[0]?.text || 
                       chunk.text || 
+                      chunk.content?.parts?.[0]?.text ||
                       "";
 
-                    // 確保取出的文字不是無意義的重複符號
                     if (chunkText) {
                       newMessage.text += chunkText;
                       renderMessages();
                     }
                   } catch (e) {
-                    // 略過無法解析的非 JSON 行（例如串流心跳空白行）
+                    // 略過無法解析的非 JSON 行
                   }
                 }
               }
@@ -318,13 +316,17 @@
             throw new Error("串流回應內容空值");
           }
 
-          // 💡 修正點：直接回傳空字串，因為訊息已經在串流中透過 state.messages.push 即時寫入了！
           return "";
 
         } catch (err) {
-          if (retryCount > 0 && (err.message.includes("high demand") || err.message.includes("network"))) {
-            state.messages.pop(); // 移除失敗的空訊息
-            await new Promise(resolve => setTimeout(resolve, 3000));
+          if (newMessage.text === "") {
+            const index = state.messages.indexOf(newMessage);
+            if (index > -1) state.messages.splice(index, 1);
+            renderMessages();
+          }
+
+          if (retryCount > 0 && (err.message.includes("high demand") || err.message.includes("network") || err.message.includes("空值"))) {
+            await new Promise(resolve => setTimeout(resolve, 2000));
             return fetchGeminiResponse(agentType, retryCount - 1);
           }
           throw err;
@@ -341,10 +343,8 @@
         el.typingIndicator.classList.add("flex");
 
         try {
-          // 呼叫串流函式，文字會直接即時寫入 state.messages
           await fetchGeminiResponse(target);
           
-          // 切換下一回合角色
           state.currentTurn = target === "A" ? "B" : "A";
           el.displayCurrentTurn.textContent = state.currentTurn === "A" ? "AI A (藍)" : "AI B (綠)";
           renderMessages();
@@ -383,7 +383,6 @@
         el.btnToggleLoop.querySelector("i").className = "fa-solid fa-play";
       }
 
-      // Event Listeners
       el.btnToggleLoop.addEventListener("click", () => {
         if (state.isLooping) stopLoop();
         else startLoop();
