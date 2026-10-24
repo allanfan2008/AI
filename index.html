@@ -35,7 +35,6 @@
         </div>
       </div>
 
-      <!-- 放大頂部按鈕文字與間距 -->
       <div class="flex items-center space-x-2.5 flex-wrap">
         <button id="btn-toggle-loop" class="px-4 py-2 text-sm sm:text-base font-semibold rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm transition flex items-center gap-2">
           <i class="fa-solid fa-play"></i> <span id="lbl-toggle-loop">開始自動對話</span>
@@ -81,7 +80,7 @@
         <div class="grid grid-cols-2 gap-2 text-sm">
           <div class="bg-slate-900/40 p-3 rounded-xl border border-slate-800">
             <div class="text-slate-400 text-xs">當前回合</div>
-            <div id="display-current-turn" class="text-lg sm:text-xl font-bold text-indigo-400 mt-1">AI A (藍)</div>
+            <div id="display-current-turn" class="text-base sm:text-lg font-bold text-indigo-400 mt-1">尼歐 (藍)</div>
           </div>
           <div class="bg-slate-900/40 p-3 rounded-xl border border-slate-800">
             <div class="text-slate-400 text-xs">總對話數</div>
@@ -95,7 +94,7 @@
           </div>
           <div class="pt-2 border-t border-slate-700/60">
             <label class="text-slate-300 text-sm block mb-1.5">初次對話主題 / 開場白</label>
-            <textarea id="input-seed" rows="3" class="w-full text-base p-3 bg-slate-900/80 border border-slate-700 rounded-xl focus:outline-none focus:border-indigo-500 text-slate-200 resize-none">你好！我們今天來聊聊 AI 發展對人類社會的未來影響吧。</textarea>
+            <textarea id="input-seed" rows="3" class="w-full text-base p-3 bg-slate-900/80 border border-slate-700 rounded-xl focus:outline-none focus:border-indigo-500 text-slate-200 resize-none">我們來探討下一個十年內，AI 與量子運算將如何徹底重塑人類的社會結構吧！</textarea>
           </div>
         </div>
       </div>
@@ -105,9 +104,9 @@
     <section class="md:col-span-3 bg-slate-800/60 border border-slate-700/80 rounded-2xl flex flex-col overflow-hidden shadow-sm">
       <div class="px-4.5 py-3.5 bg-slate-800/90 border-b border-slate-700/80 flex items-center justify-between text-sm sm:text-base text-slate-300">
         <div class="flex items-center space-x-3.5">
-          <span class="flex items-center gap-2 text-indigo-300 font-semibold"><span class="w-3.5 h-3.5 rounded-full bg-indigo-500 inline-block"></span> AI A</span>
+          <span class="flex items-center gap-2 text-indigo-300 font-semibold"><span class="w-3.5 h-3.5 rounded-full bg-indigo-500 inline-block"></span> 尼歐 (Neo)</span>
           <span>⇄</span>
-          <span class="flex items-center gap-2 text-emerald-300 font-semibold"><span class="w-3.5 h-3.5 rounded-full bg-emerald-500 inline-block"></span> AI B</span>
+          <span class="flex items-center gap-2 text-emerald-300 font-semibold"><span class="w-3.5 h-3.5 rounded-full bg-emerald-500 inline-block"></span> 墨菲 (Murphy)</span>
           <span>⇄</span>
           <span class="flex items-center gap-2 text-amber-300 font-semibold"><span class="w-3.5 h-3.5 rounded-full bg-amber-500 inline-block"></span> 評論員</span>
         </div>
@@ -141,12 +140,12 @@
           <input type="url" id="setting-worker-url" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-slate-200 font-mono focus:outline-none focus:border-indigo-500 text-sm sm:text-base">
         </div>
         <div>
-          <label class="block font-semibold text-indigo-300 mb-2">AI A 角色設定</label>
-          <textarea id="setting-persona-a" rows="2" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-slate-200 focus:outline-none focus:border-indigo-500 resize-none text-sm sm:text-base"></textarea>
+          <label class="block font-semibold text-indigo-300 mb-2">尼歐 (AI A) 角色設定</label>
+          <textarea id="setting-persona-a" rows="3" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-slate-200 focus:outline-none focus:border-indigo-500 resize-none text-sm sm:text-base"></textarea>
         </div>
         <div>
-          <label class="block font-semibold text-emerald-300 mb-2">AI B 角色設定</label>
-          <textarea id="setting-persona-b" rows="2" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-slate-200 focus:outline-none focus:border-emerald-500 resize-none text-sm sm:text-base"></textarea>
+          <label class="block font-semibold text-emerald-300 mb-2">墨菲 (AI B) 角色設定</label>
+          <textarea id="setting-persona-b" rows="3" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-slate-200 focus:outline-none focus:border-emerald-500 resize-none text-sm sm:text-base"></textarea>
         </div>
       </div>
       <div class="px-6 py-4 bg-slate-900/60 border-t border-slate-700 flex justify-end">
@@ -159,10 +158,13 @@
     document.addEventListener("DOMContentLoaded", () => {
       const DEFAULT_WORKER_URL = "https://orange-water-91fc.allanfan2008.workers.dev/";
 
+      const DEFAULT_PERSONA_A = "你是一位深信技術奇異點即將到來的未來學家與軟體架構師。你認為所有的程式 Bug、能源危機與社會難題都能透過更先進的 AI、自動化與量子運算來解決。你發言充滿熱情、富有前瞻性，喜歡提出宏大的願景與顛覆性的架構。";
+      const DEFAULT_PERSONA_B = "你是一位極度嚴謹的資安專家與系統架構總監，信奉「凡是可能出錯的事必定會出錯」。面對尼歐的宏大願景，你總是第一時間指出隱藏的資安漏洞、技術債、供應鏈風險與道德倫理災難。你喜歡追問：架構真的能支撐嗎？萬一發生極端異常怎麼辦？";
+
       const state = {
         workerUrl: localStorage.getItem("workerUrl") || DEFAULT_WORKER_URL,
-        personaA: localStorage.getItem("personaA") || "你是一位樂觀、有創見且條理分明的專家。",
-        personaB: localStorage.getItem("personaB") || "你是一位嚴謹、抱持批判思維且喜歡追問細節的質疑者。",
+        personaA: localStorage.getItem("personaA") || DEFAULT_PERSONA_A,
+        personaB: localStorage.getItem("personaB") || DEFAULT_PERSONA_B,
         isLooping: false,
         isThinking: false,
         currentTurn: "A",
@@ -242,7 +244,7 @@
       function renderMessages() {
         el.chatBox.innerHTML = "";
         if (state.messages.length === 0) {
-          el.chatBox.innerHTML = `<div class="h-full flex flex-col items-center justify-center text-slate-400 text-base py-16"><i class="fa-solid fa-comments text-5xl mb-3 opacity-30"></i><p>點擊「開始自動對話」啟動雙 AI 交流。</p></div>`;
+          el.chatBox.innerHTML = `<div class="h-full flex flex-col items-center justify-center text-slate-400 text-base py-16"><i class="fa-solid fa-comments text-5xl mb-3 opacity-30"></i><p>點擊「開始自動對話」啟動尼歐與墨菲的深度交鋒。</p></div>`;
           el.displayMsgCount.textContent = "0";
           return;
         }
@@ -257,7 +259,7 @@
             : (isB ? "bg-emerald-950/50 text-emerald-100 border-emerald-700/60" 
             : (isComm ? "bg-amber-950/50 text-amber-100 border-amber-600/60" : "bg-slate-800 text-slate-200 border-slate-700"));
 
-          let roleBadge = isA ? "AI A" : (isB ? "AI B" : (isComm ? "第三方評論員" : "人類"));
+          let roleBadge = isA ? "尼歐 (Neo)" : (isB ? "墨菲 (Murphy)" : (isComm ? "第三方評論員" : "人類"));
 
           let badgeStyle = isA 
             ? "bg-indigo-500/20 text-indigo-300 border-indigo-500/40" 
@@ -392,14 +394,14 @@
         el.typingIndicator.classList.add("flex");
 
         const dialogueTranscript = state.messages.map(m => {
-          const roleLabel = m.role === 'A' ? 'AI A' : (m.role === 'B' ? 'AI B' : (m.role === 'Human' ? '人類' : '評論員'));
+          const roleLabel = m.role === 'A' ? '尼歐' : (m.role === 'B' ? '墨菲' : (m.role === 'Human' ? '人類' : '評論員'));
           return `[${m.time}] ${roleLabel}: ${m.text}`;
         }).join("\n\n");
 
-        const summaryPrompt = `你是一位客觀、嚴謹且精闢的第三方評論員。請針對以下整段對話紀錄進行深度總結：
+        const summaryPrompt = `你是一位客觀、嚴謹且精闢的第三方評論員。請針對以下整段尼歐與墨菲的對話紀錄進行深度總結：
 
 1. **對話核心主題**
-2. **AI A 與 AI B（及人類參與者）的主要立場與爭執焦點**
+2. **尼歐與墨菲（及人類參與者）的主要立場與爭執焦點**
 3. **客觀評論與洞察總結**
 
 以下為完整對話紀錄：
@@ -496,7 +498,7 @@ ${dialogueTranscript}`;
         }
 
         const formattedText = state.messages.map(m => {
-          const roleLabel = m.role === 'A' ? 'AI A' : (m.role === 'B' ? 'AI B' : (m.role === 'Human' ? '人類' : '第三方評論員'));
+          const roleLabel = m.role === 'A' ? '尼歐' : (m.role === 'B' ? '墨菲' : (m.role === 'Human' ? '人類' : '第三方評論員'));
           return `[${m.time}] ${roleLabel}:\n${m.text}`;
         }).join("\n\n----------------------------------------\n\n");
 
@@ -512,15 +514,16 @@ ${dialogueTranscript}`;
         if (state.isThinking) return;
         state.isThinking = true;
         const target = state.currentTurn;
+        const targetName = target === "A" ? "尼歐" : "墨菲";
 
-        el.typingText.textContent = `AI ${target} 正在思考...`;
+        el.typingText.textContent = `${targetName} 正在思考...`;
         el.typingIndicator.classList.remove("hidden");
         el.typingIndicator.classList.add("flex");
 
         try {
           await fetchGeminiResponse(target);
           state.currentTurn = target === "A" ? "B" : "A";
-          el.displayCurrentTurn.textContent = state.currentTurn === "A" ? "AI A (藍)" : "AI B (綠)";
+          el.displayCurrentTurn.textContent = state.currentTurn === "A" ? "尼歐 (藍)" : "墨菲 (綠)";
           renderMessages();
         } catch (err) {
           console.error(err);
@@ -574,7 +577,7 @@ ${dialogueTranscript}`;
         stopLoop();
         state.messages = [];
         state.currentTurn = "A";
-        el.displayCurrentTurn.textContent = "AI A (藍)";
+        el.displayCurrentTurn.textContent = "尼歐 (藍)";
         renderMessages();
         showToast("已清除所有對話", "info");
       });
