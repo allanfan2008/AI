@@ -90,12 +90,12 @@
         </div>
         <div class="text-xs space-y-2 mt-1">
           <div>
-            <label class="text-slate-400 text-[11px] block mb-1">自動發言間隔 (秒): <span id="delay-val" class="text-slate-200 font-semibold">3</span>s</label>
+            <label class="text-slate-400 text-xs block mb-1">自動發言間隔 (秒): <span id="delay-val" class="text-slate-200 font-semibold">3</span>s</label>
             <input type="range" id="input-delay" min="1" max="10" value="3" class="w-full accent-indigo-500 bg-slate-700 h-1.5 rounded-lg appearance-none cursor-pointer">
           </div>
           <div class="pt-2 border-t border-slate-700/60">
-            <label class="text-slate-400 text-[11px] block mb-1">初次對話主題 / 開場白</label>
-            <textarea id="input-seed" rows="3" class="w-full text-xs p-2.5 bg-slate-900/80 border border-slate-700 rounded-xl focus:outline-none focus:border-indigo-500 text-slate-200 resize-none">你好！我們今天來聊聊 AI 發展對人類社會的未來影響吧。</textarea>
+            <label class="text-slate-400 text-xs block mb-1">初次對話主題 / 開場白</label>
+            <textarea id="input-seed" rows="3" class="w-full text-sm p-2.5 bg-slate-900/80 border border-slate-700 rounded-xl focus:outline-none focus:border-indigo-500 text-slate-200 resize-none">你好！我們今天來聊聊 AI 發展對人類社會的未來影響吧。</textarea>
           </div>
         </div>
       </div>
@@ -103,7 +103,7 @@
 
     <!-- Right Chat Area -->
     <section class="md:col-span-3 bg-slate-800/60 border border-slate-700/80 rounded-2xl flex flex-col overflow-hidden shadow-sm">
-      <div class="px-4 py-2.5 bg-slate-800/90 border-b border-slate-700/80 flex items-center justify-between text-xs text-slate-400">
+      <div class="px-4 py-2.5 bg-slate-800/90 border-b border-slate-700/80 flex items-center justify-between text-xs sm:text-sm text-slate-400">
         <div class="flex items-center space-x-3">
           <span class="flex items-center gap-1.5 text-indigo-400 font-medium"><span class="w-2.5 h-2.5 rounded-full bg-indigo-500 inline-block"></span> AI A</span>
           <span>⇄</span>
@@ -113,15 +113,15 @@
         </div>
         <div id="typing-indicator" class="hidden items-center gap-2 text-indigo-300 animate-pulse-slow">
           <i class="fa-solid fa-circle-notch fa-spin"></i>
-          <span id="typing-text" class="text-[11px]">AI 正在思考中...</span>
+          <span id="typing-text" class="text-xs">AI 正在思考中...</span>
         </div>
       </div>
 
       <div id="chat-box" class="flex-1 p-4 overflow-y-auto space-y-4 chat-scroll"></div>
 
       <div class="p-3 bg-slate-900/80 border-t border-slate-700/80 flex gap-2 items-center">
-        <input type="text" id="human-input" class="flex-1 text-xs sm:text-sm bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2.5 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition" placeholder="人類參與對話... 輸入訊息插話">
-        <button id="btn-send-human" class="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-semibold transition flex items-center gap-1.5">
+        <input type="text" id="human-input" class="flex-1 text-sm sm:text-base bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition" placeholder="人類參與對話... 輸入訊息插話">
+        <button id="btn-send-human" class="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs sm:text-sm font-semibold transition flex items-center gap-1.5">
           <i class="fa-solid fa-paper-plane"></i> 發送
         </button>
       </div>
@@ -135,7 +135,7 @@
         <h3 class="font-bold text-base text-slate-100 flex items-center gap-2"><i class="fa-solid fa-sliders text-indigo-400"></i> 設定</h3>
         <button id="btn-close-modal" class="text-slate-400 hover:text-slate-200"><i class="fa-solid fa-xmark text-lg"></i></button>
       </div>
-      <div class="p-5 space-y-4 text-xs">
+      <div class="p-5 space-y-4 text-xs sm:text-sm">
         <div>
           <label class="block font-semibold text-slate-300 mb-1">Cloudflare Worker Proxy URL</label>
           <input type="url" id="setting-worker-url" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-slate-200 font-mono focus:outline-none focus:border-indigo-500">
@@ -150,7 +150,7 @@
         </div>
       </div>
       <div class="px-5 py-3 bg-slate-900/60 border-t border-slate-700 flex justify-end">
-        <button id="btn-save-settings" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-semibold text-xs transition">儲存設定</button>
+        <button id="btn-save-settings" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-semibold text-xs sm:text-sm transition">儲存設定</button>
       </div>
     </div>
   </div>
@@ -205,7 +205,7 @@
         const bgStyle = type === "success" 
           ? "bg-emerald-900/90 border-emerald-500/50 text-emerald-100" 
           : (type === "warning" ? "bg-amber-900/90 border-amber-500/50 text-amber-100" : "bg-slate-800/95 border-indigo-500/50 text-slate-100");
-        toast.className = `px-4 py-2.5 rounded-xl border text-xs shadow-xl backdrop-blur transition-all duration-300 opacity-0 translate-y-2 pointer-events-auto flex items-center gap-2 ${bgStyle}`;
+        toast.className = `px-4 py-2.5 rounded-xl border text-xs sm:text-sm shadow-xl backdrop-blur transition-all duration-300 opacity-0 translate-y-2 pointer-events-auto flex items-center gap-2 ${bgStyle}`;
         toast.innerHTML = `<i class="fa-solid ${type === 'success' ? 'fa-check-circle' : 'fa-circle-info'}"></i><span>${escapeHtml(message)}</span>`;
         
         el.toastContainer.appendChild(toast);
@@ -242,7 +242,7 @@
       function renderMessages() {
         el.chatBox.innerHTML = "";
         if (state.messages.length === 0) {
-          el.chatBox.innerHTML = `<div class="h-full flex flex-col items-center justify-center text-slate-500 text-xs py-12"><i class="fa-solid fa-comments text-4xl mb-3 opacity-30"></i><p>點擊「開始自動對話」啟動雙 AI 交流。</p></div>`;
+          el.chatBox.innerHTML = `<div class="h-full flex flex-col items-center justify-center text-slate-500 text-sm py-12"><i class="fa-solid fa-comments text-4xl mb-3 opacity-30"></i><p>點擊「開始自動對話」啟動雙 AI 交流。</p></div>`;
           el.displayMsgCount.textContent = "0";
           return;
         }
@@ -268,7 +268,7 @@
 
           const div = document.createElement("div");
           div.className = `flex ${alignClass} mb-3`;
-          div.innerHTML = `<div class="${isComm ? 'w-full' : 'max-w-[85%]' } border ${bubbleBg} rounded-2xl p-3.5 shadow-sm space-y-1.5"><div class="flex items-center justify-between gap-3 text-[11px]"><span class="px-2 py-0.5 rounded-full border text-[10px] font-semibold ${badgeStyle}">${roleBadge}</span><span class="text-slate-500">${msg.time}</span></div><div class="text-xs sm:text-sm whitespace-pre-wrap leading-relaxed">${escapeHtml(msg.text)}</div></div>`;
+          div.innerHTML = `<div class="${isComm ? 'w-full' : 'max-w-[88%]' } border ${bubbleBg} rounded-2xl p-4 shadow-sm space-y-2"><div class="flex items-center justify-between gap-3 text-xs"><span class="px-2.5 py-0.5 rounded-full border text-xs font-semibold ${badgeStyle}">${roleBadge}</span><span class="text-slate-400">${msg.time}</span></div><div class="text-sm sm:text-base whitespace-pre-wrap leading-relaxed">${escapeHtml(msg.text)}</div></div>`;
           el.chatBox.appendChild(div);
         });
 
